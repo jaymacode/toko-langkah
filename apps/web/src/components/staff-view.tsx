@@ -89,7 +89,7 @@ export function StaffView({ mode }: { mode: AppMode }) {
     <SiteFrame mode={mode} current="staf">
       <section aria-labelledby="staff-heading" className="flex flex-col gap-6">
         <div>
-          <h1 id="staff-heading" className="text-2xl font-semibold text-text">
+          <h1 id="staff-heading" className="font-display text-[clamp(40px,6vw,72px)] font-bold uppercase leading-[0.86] text-text">
             Staf
           </h1>
           <p className="mt-2 text-muted">Tiket eskalasi dari pelanggan. Data demo, fiktif.</p>
@@ -107,7 +107,7 @@ function StaffGate() {
     return <p role="status" className="text-muted">Memuat…</p>;
   }
   if (auth.sessionStatus === "not_configured") {
-    return <p role="status" className="rounded-card border border-border bg-surface p-4 text-text">{NOT_CONFIGURED_MESSAGE}</p>;
+    return <p role="status" className="rounded-card border border-border bg-surface p-5 text-text">{NOT_CONFIGURED_MESSAGE}</p>;
   }
   if (auth.sessionStatus === "signed_out") {
     return <SignedOutNotice message="Masuk dengan akun staf untuk membuka halaman ini." />;
@@ -119,7 +119,7 @@ function StaffGate() {
     return <ApiErrorNotice error={auth.meError} onRetry={auth.reloadMe} />;
   }
   if (!auth.isStaff) {
-    return <p className="rounded-card border border-border bg-surface p-4 text-text">{STAFF_ONLY_MESSAGE}</p>;
+    return <p className="rounded-card border border-border bg-surface p-5 text-text">{STAFF_ONLY_MESSAGE}</p>;
   }
   return <StaffDashboard />;
 }
@@ -214,10 +214,10 @@ export function StaffDashboard() {
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-start">
       <section aria-labelledby={listHeadingId} className="flex min-w-0 flex-col gap-4">
-        <h2 id={listHeadingId} className="text-xl font-semibold text-text">
+        <h2 id={listHeadingId} className="font-display text-[26px] font-medium leading-tight text-text">
           Daftar tiket
         </h2>
-        <div role="group" aria-label="Filter status" className="flex flex-wrap gap-2">
+        <div role="group" aria-label="Filter status" className="flex w-fit max-w-full flex-wrap gap-1 rounded-[26px] bg-stone p-1">
           {FILTERS.map((option) => {
             const active = filter === option.value;
             return (
@@ -228,8 +228,8 @@ export function StaffDashboard() {
                 onClick={() => changeFilter(option.value)}
                 className={
                   active
-                    ? "min-h-11 rounded-card bg-primary px-4 font-semibold text-white"
-                    : "min-h-11 rounded-card border border-border bg-surface px-4 text-text hover:bg-background"
+                    ? "min-h-11 rounded-pill bg-primary px-4 text-[15px] font-medium text-on-primary"
+                    : "min-h-11 rounded-pill px-4 text-[15px] text-text transition-colors duration-200 hover:bg-surface"
                 }
               >
                 {option.label}
@@ -287,7 +287,7 @@ function TicketList({
     return <ApiErrorNotice error={list.error} onRetry={onRetry} />;
   }
   if (list.items.length === 0) {
-    return <p className="rounded-card border border-border bg-surface p-4 text-text">Belum ada tiket untuk filter ini.</p>;
+    return <p className="rounded-card border border-border bg-surface p-5 text-text">Belum ada tiket untuk filter ini.</p>;
   }
   return (
     <ul aria-label="Tiket" className="flex flex-col gap-2">
@@ -301,8 +301,8 @@ function TicketList({
               aria-current={selected ? "true" : undefined}
               className={
                 selected
-                  ? "flex min-h-11 w-full min-w-0 flex-col gap-1 rounded-card border-2 border-primary bg-surface p-3 text-left"
-                  : "flex min-h-11 w-full min-w-0 flex-col gap-1 rounded-card border border-border bg-surface p-3 text-left hover:bg-background"
+                  ? "flex min-h-11 w-full min-w-0 flex-col gap-1 rounded-bay border border-text bg-surface p-4 text-left shadow-[0_10px_30px_-22px_rgba(21,22,23,0.5)]"
+                  : "flex min-h-11 w-full min-w-0 flex-col gap-1 rounded-bay border border-border bg-surface p-4 text-left transition-colors duration-200 hover:border-quiet"
               }
             >
               <span className="font-semibold text-text break-words">{ticket.reason}</span>
@@ -337,23 +337,23 @@ function TicketDetail({
   onRetry: () => void;
 }) {
   if (detail.status === "idle") {
-    return <p className="rounded-card border border-border bg-surface p-4 text-text">Pilih tiket untuk melihat detail.</p>;
+    return <p className="rounded-card border border-border bg-surface p-5 text-text">Pilih tiket untuk melihat detail.</p>;
   }
   if (detail.status === "loading") {
     return <p role="status" className="text-muted">Memuat detail tiket…</p>;
   }
   if (detail.status === "error") {
     if (detail.error.kind === "not_found") {
-      return <p role="alert" className="rounded-card border border-border bg-surface p-4 text-text">{TICKET_NOT_FOUND_MESSAGE}</p>;
+      return <p role="alert" className="rounded-card border border-border bg-surface p-5 text-text">{TICKET_NOT_FOUND_MESSAGE}</p>;
     }
     return <ApiErrorNotice error={detail.error} onRetry={onRetry} />;
   }
 
   const ticket = detail.ticket;
   return (
-    <article aria-labelledby="ticket-detail-heading" className="flex min-w-0 flex-col gap-5 rounded-card border border-border bg-surface p-4 md:p-6">
+    <article aria-labelledby="ticket-detail-heading" className="flex min-w-0 flex-col gap-5 rounded-card border border-border bg-surface p-5 md:p-6">
       <div>
-        <h2 id="ticket-detail-heading" ref={headingRef} tabIndex={-1} className="text-xl font-semibold text-text outline-none">
+        <h2 id="ticket-detail-heading" ref={headingRef} tabIndex={-1} className="font-display text-[26px] font-medium leading-tight text-text outline-none">
           {ticket.reason}
         </h2>
         <p className="mt-1 break-all text-sm text-muted">ID tiket: {ticket.id}</p>
@@ -383,7 +383,7 @@ function TicketDetail({
       </dl>
 
       <div className="flex flex-col gap-2">
-        <p className="text-sm text-muted">Ubah status</p>
+        <p className="text-[12px] font-medium uppercase tracking-[0.08em] text-muted">Ubah status</p>
         <div role="group" aria-label="Ubah status tiket" className="flex flex-wrap gap-2">
           {(Object.keys(STATUS_ACTION_LABELS) as TicketStatus[])
             .filter((status) => status !== ticket.status)
@@ -393,7 +393,7 @@ function TicketDetail({
                 type="button"
                 disabled={pending}
                 onClick={() => onRequestStatus(status)}
-                className="min-h-11 rounded-card border border-border bg-background px-4 text-text hover:bg-surface disabled:opacity-60"
+                className="min-h-11 rounded-pill border border-text bg-surface px-5 text-text transition-colors duration-200 hover:bg-primary hover:text-on-primary disabled:opacity-60"
               >
                 {STATUS_ACTION_LABELS[status]}
               </button>
@@ -401,7 +401,7 @@ function TicketDetail({
         </div>
         {pending ? <p role="status" className="text-sm text-muted">Menyimpan perubahan…</p> : null}
         {actionError ? (
-          <p role="alert" className="text-text">
+          <p role="alert" className="text-accent-ink">
             {actionError}
           </p>
         ) : null}
@@ -411,7 +411,7 @@ function TicketDetail({
       </div>
 
       <section aria-labelledby="transcript-heading" className="flex flex-col gap-3">
-        <h3 id="transcript-heading" className="text-lg font-semibold text-text">
+        <h3 id="transcript-heading" className="font-display text-[20px] font-medium text-text">
           Percakapan
         </h3>
         {ticket.transcript.length === 0 ? (
@@ -419,8 +419,8 @@ function TicketDetail({
         ) : (
           <ol aria-label="Percakapan" className="flex flex-col gap-2">
             {ticket.transcript.map((message, index) => (
-              <li key={`${message.created_at}-${index}`} className="rounded-card border border-border bg-background p-3">
-                <p className="text-sm font-semibold text-text">
+              <li key={`${message.created_at}-${index}`} className="rounded-bay bg-stone px-4 py-3">
+                <p className="text-sm font-medium text-text">
                   {roleLabel(message.role)} <span className="font-normal text-muted">{formatDateTime(message.created_at)}</span>
                 </p>
                 <p className="mt-1 whitespace-pre-wrap break-words text-text">{message.content}</p>
@@ -431,15 +431,15 @@ function TicketDetail({
       </section>
 
       <section aria-labelledby="audit-heading" className="flex flex-col gap-3">
-        <h3 id="audit-heading" className="text-lg font-semibold text-text">
+        <h3 id="audit-heading" className="font-display text-[20px] font-medium text-text">
           Riwayat audit
         </h3>
         {ticket.audit.length === 0 ? (
           <p className="text-muted">Belum ada catatan audit.</p>
         ) : (
-          <ol aria-label="Riwayat audit" className="flex flex-col gap-2">
+          <ol aria-label="Riwayat audit" className="flex flex-col border-l border-rule pl-4">
             {ticket.audit.map((event, index) => (
-              <li key={`${event.created_at}-${index}`} className="text-sm text-text">
+              <li key={`${event.created_at}-${index}`} className="relative py-1.5 text-sm text-text before:absolute before:-left-[1.3rem] before:top-3 before:h-2 before:w-2 before:rounded-full before:bg-text">
                 <span className="break-words">{auditActionLabel(event.action)}</span>{" "}
                 <span className="text-muted">{formatDateTime(event.created_at)}</span>
               </li>

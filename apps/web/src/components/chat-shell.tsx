@@ -252,17 +252,18 @@ export function ChatShell({ onResults }: { onResults?: (products: ProductHit[]) 
   const signedIn = auth.sessionStatus === "signed_in" && userId !== null;
 
   return (
-    <section aria-labelledby={headingId} className="flex min-w-0 flex-col gap-4">
+    <section aria-labelledby={headingId} className="flex min-w-0 flex-col gap-5">
       <div>
-        <h1 id={headingId} className="text-2xl font-semibold text-text">
-          Asisten TokoLangkah
+        <h1 id={headingId} className="font-display text-[clamp(40px,5vw,64px)] font-bold uppercase leading-[0.86] text-text lg:text-[44px]">
+          <span className="block lg:inline">Asisten</span> <span className="block text-quiet lg:inline">TokoLangkah</span>
         </h1>
         {provider === "rules" ? (
-          <p className="mt-2 inline-block rounded-card border border-border bg-background px-3 py-1 text-sm text-text">
+          <p className="mt-4 inline-flex items-center gap-2 rounded-pill border border-rule bg-surface px-3 py-1.5 text-[13px] text-text">
+            <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
             {RULES_PROVIDER_LABEL}
           </p>
         ) : null}
-        <p className="mt-2 text-muted">
+        <p className="mt-3 max-w-[46ch] text-[16px] leading-relaxed text-muted">
           Tanyakan produk, ukuran, pesanan Anda, atau kebijakan toko. Jawaban menyertakan sumber bila tersedia.
         </p>
       </div>
@@ -273,15 +274,15 @@ export function ChatShell({ onResults }: { onResults?: (products: ProductHit[]) 
         </p>
       ) : null}
       {auth.sessionStatus === "not_configured" ? (
-        <p role="status" className="rounded-card border border-border bg-surface p-4 text-text">
+        <p role="status" className="rounded-card border border-border bg-surface p-5 text-text">
           {NOT_CONFIGURED_MESSAGE}
         </p>
       ) : null}
       {auth.sessionStatus === "signed_out" ? <SignedOutNotice message={SIGN_IN_PROMPT} /> : null}
 
       {signedIn ? (
-        <div className="flex flex-col rounded-card border border-border bg-surface">
-          <div className="max-h-[50vh] min-h-48 overflow-y-auto p-4 lg:max-h-[60vh]">
+        <div className="flex flex-col overflow-hidden rounded-card border border-border bg-surface lg:h-[calc(100dvh-20.5rem)] lg:min-h-[24rem]">
+          <div className="max-h-[50vh] min-h-56 overflow-y-auto px-4 py-5 [scrollbar-width:thin] lg:max-h-none lg:min-h-0 lg:flex-1">
             {restoring ? (
               <p role="status" className="text-muted">
                 Memuat riwayat percakapan…
@@ -293,19 +294,21 @@ export function ChatShell({ onResults }: { onResults?: (products: ProductHit[]) 
               </p>
             ) : null}
             {messages.length === 0 && !restoring ? (
-              <p className="text-muted">Belum ada pesan. Tulis pesan di bawah untuk memulai.</p>
+              <p className="font-display max-w-[24ch] text-[24px] leading-tight text-muted">
+                Belum ada pesan. Tulis pesan di bawah untuk memulai.
+              </p>
             ) : messages.length === 0 ? null : (
-              <ol aria-label="Percakapan" className="flex flex-col gap-4">
+              <ol aria-label="Percakapan" className="flex flex-col gap-3">
                 {messages.map((entry) => (
                   <li
                     key={entry.id}
                     className={
                       entry.role === "user"
-                        ? "ml-auto max-w-[85%] rounded-card bg-primary px-4 py-3 text-white"
-                        : "mr-auto max-w-[85%] rounded-card border border-border bg-background px-4 py-3 text-text"
+                        ? "ml-auto max-w-[85%] rounded-[20px] rounded-br-md bg-primary px-4 py-3 text-on-primary"
+                        : "mr-auto max-w-[92%] rounded-[20px] rounded-bl-md bg-stone px-4 py-3 text-text"
                     }
                   >
-                    <p className="text-sm font-semibold">{entry.role === "user" ? "Anda" : "Asisten"}</p>
+                    <p className="text-[12px] font-medium uppercase tracking-[0.08em]">{entry.role === "user" ? "Anda" : "Asisten"}</p>
                     <div className="mt-1">
                       {entry.role === "user" ? (
                         <p className="whitespace-pre-wrap break-words">{entry.text}</p>
@@ -325,7 +328,7 @@ export function ChatShell({ onResults }: { onResults?: (products: ProductHit[]) 
             <div ref={logEndRef} />
           </div>
 
-          <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-3 border-t border-border p-4">
+          <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-3 border-t border-border bg-background p-4">
             <FilterChips chips={chips} onRemove={removeChip} />
             {filterHint ? (
               <p role="status" className="text-sm text-muted">
@@ -333,44 +336,49 @@ export function ChatShell({ onResults }: { onResults?: (products: ProductHit[]) 
               </p>
             ) : null}
 
-            <label htmlFor={inputId} className="block font-semibold text-text">
-              Tulis pesan
-            </label>
-            <p id={hintId} className="text-sm text-muted">
-              Enter untuk kirim, Shift+Enter untuk baris baru.
-            </p>
-            <textarea
-              id={inputId}
-              ref={inputRef}
-              name="message"
-              rows={3}
-              maxLength={MAX_MESSAGE_LENGTH}
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={handleKeyDown}
-              aria-describedby={hintId}
-              aria-invalid={validationError !== null || failure !== null}
-              className="w-full resize-y rounded-card border border-border bg-background p-3 text-text"
-            />
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+              <label htmlFor={inputId} className="block font-medium text-text">
+                Tulis pesan
+              </label>
+              <p id={hintId} className="text-[13px] text-muted">
+                Enter untuk kirim, Shift+Enter untuk baris baru.
+              </p>
+            </div>
+            <div className="flex items-end gap-2">
+              <textarea
+                id={inputId}
+                ref={inputRef}
+                name="message"
+                rows={2}
+                maxLength={MAX_MESSAGE_LENGTH}
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={handleKeyDown}
+                aria-describedby={hintId}
+                aria-invalid={validationError !== null || failure !== null}
+                className="min-h-11 w-full min-w-0 flex-1 resize-none rounded-bay border border-quiet bg-surface p-3 text-text transition-colors duration-200 hover:border-text focus:border-text"
+              />
+              <button
+                type="submit"
+                disabled={sending}
+                className="min-h-11 rounded-pill bg-primary px-6 font-medium text-on-primary transition-opacity duration-200 hover:opacity-85 disabled:opacity-60"
+              >
+                {sending ? "Mengirim…" : "Kirim"}
+              </button>
+            </div>
             {validationError !== null || failure !== null ? (
-              <p role="alert" className="text-sm text-text">
+              <p role="alert" className="flex items-start gap-2 text-sm text-accent-ink">
+                <span aria-hidden="true" className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
                 {validationError ?? failure?.message}
               </p>
             ) : null}
             <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="submit"
-                disabled={sending}
-                className="min-h-11 rounded-card bg-primary px-5 font-semibold text-white hover:opacity-90 disabled:opacity-60"
-              >
-                {sending ? "Mengirim…" : "Kirim"}
-              </button>
               {failure?.retryable && pending !== null ? (
                 <button
                   type="button"
                   onClick={retry}
                   disabled={sending}
-                  className="min-h-11 rounded-card border border-border bg-surface px-4 text-text hover:bg-background disabled:opacity-60"
+                  className="min-h-11 rounded-pill border border-text bg-surface px-5 text-text transition-colors duration-200 hover:bg-stone disabled:opacity-60"
                 >
                   Coba kirim lagi
                 </button>
@@ -378,16 +386,20 @@ export function ChatShell({ onResults }: { onResults?: (products: ProductHit[]) 
             </div>
           </form>
 
-          <div className="flex flex-col gap-2 border-t border-border p-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border p-4">
             <button
               type="button"
               onClick={() => submitText(ESCALATION_REQUEST_TEXT)}
               disabled={sending}
-              className="min-h-11 self-start rounded-card border border-border bg-background px-4 text-text hover:bg-surface disabled:opacity-60"
+              className="inline-flex min-h-11 items-center gap-2 rounded-pill border border-rule bg-surface px-4 text-text transition-colors duration-200 hover:border-text disabled:opacity-60"
             >
+              <svg aria-hidden="true" viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="8" cy="5.5" r="2.5" />
+                <path d="M3 13.5c.8-2.3 2.7-3.5 5-3.5s4.2 1.2 5 3.5" strokeLinecap="round" />
+              </svg>
               Hubungi staf
             </button>
-            <p className="text-sm text-muted">Permintaan ini dicatat sebagai tiket dan dapat dilihat staf.</p>
+            <p className="min-w-0 flex-1 basis-48 text-[13px] text-muted">Permintaan ini dicatat sebagai tiket dan dapat dilihat staf.</p>
           </div>
         </div>
       ) : null}

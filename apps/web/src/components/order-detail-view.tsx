@@ -65,7 +65,7 @@ function OrderDetail({ orderNumber }: { orderNumber: string }) {
     return <p role="status" className="text-muted">Memuat…</p>;
   }
   if (auth.sessionStatus === "not_configured") {
-    return <p role="status" className="rounded-card border border-border bg-surface p-4 text-text">{NOT_CONFIGURED_MESSAGE}</p>;
+    return <p role="status" className="rounded-card border border-border bg-surface p-5 text-text">{NOT_CONFIGURED_MESSAGE}</p>;
   }
   if (!signedIn) {
     return <SignedOutNotice message="Masuk untuk melihat detail pesanan." />;
@@ -76,10 +76,10 @@ function OrderDetail({ orderNumber }: { orderNumber: string }) {
   if (state.status === "not_found") {
     return (
       <section aria-labelledby="order-heading" className="flex flex-col gap-4">
-        <h1 id="order-heading" className="text-2xl font-semibold text-text">
+        <h1 id="order-heading" className="font-display text-[clamp(40px,6vw,72px)] font-bold uppercase leading-[0.86] text-text">
           {ORDER_NOT_FOUND_MESSAGE}
         </h1>
-        <Link href="/pesanan" className="inline-flex min-h-11 items-center text-primary underline">
+        <Link href="/pesanan" className="inline-flex min-h-11 items-center text-text underline decoration-rule underline-offset-4 hover:decoration-text">
           Kembali ke daftar pesanan
         </Link>
       </section>
@@ -93,15 +93,15 @@ function OrderDetail({ orderNumber }: { orderNumber: string }) {
   return (
     <article aria-labelledby="order-heading" className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <Link href="/pesanan" className="inline-flex min-h-11 items-center text-primary underline">
+        <Link href="/pesanan" className="inline-flex min-h-11 items-center text-text underline decoration-rule underline-offset-4 hover:decoration-text">
           Kembali ke daftar pesanan
         </Link>
-        <h1 id="order-heading" className="text-2xl font-semibold text-text break-all">
+        <h1 id="order-heading" className="font-display text-[clamp(40px,6vw,72px)] font-bold uppercase leading-[0.86] text-text break-all">
           Pesanan {order.order_number}
         </h1>
       </div>
 
-      <dl className="grid grid-cols-1 gap-4 rounded-card border border-border bg-surface p-4 sm:grid-cols-2">
+      <dl className="grid grid-cols-1 gap-4 rounded-card border border-border bg-surface p-5 sm:grid-cols-2">
         <div>
           <dt className="text-sm text-muted">Status</dt>
           <dd className="mt-1 font-semibold text-text">{orderStatusLabel(order.status)}</dd>
@@ -125,14 +125,14 @@ function OrderDetail({ orderNumber }: { orderNumber: string }) {
       </dl>
 
       <section aria-labelledby="order-items-heading" className="flex flex-col gap-3">
-        <h2 id="order-items-heading" className="text-xl font-semibold text-text">
+        <h2 id="order-items-heading" className="font-display text-[26px] font-medium leading-tight text-text">
           Barang
         </h2>
         <ul className="flex flex-col gap-3">
           {order.items.map((item, index) => (
             <li
               key={`${item.product_name}-${item.size_eu}-${index}`}
-              className="flex min-w-0 flex-col gap-1 rounded-card border border-border bg-surface p-4"
+              className="flex min-w-0 flex-col gap-1 rounded-card border border-border bg-surface p-5"
             >
               <span className="font-semibold text-text break-words">{item.product_name}</span>
               <span className="text-sm text-muted">

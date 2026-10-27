@@ -23,12 +23,12 @@ function SkeletonGrid() {
   return (
     <div aria-hidden="true" className="grid grid-cols-1 gap-4 @md:grid-cols-2 @3xl:grid-cols-3">
       {Array.from({ length: 3 }, (_, index) => (
-        <div key={index} className="animate-pulse rounded-card border border-border bg-surface">
-          <div className="aspect-square w-full rounded-t-card bg-background" />
-          <div className="space-y-3 p-4">
-            <div className="h-5 w-2/3 rounded bg-background" />
-            <div className="h-4 w-1/3 rounded bg-background" />
-            <div className="h-10 w-full rounded bg-background" />
+        <div key={index} className="animate-pulse rounded-card border border-border bg-surface p-1.5">
+          <div className="aspect-square w-full rounded-bay bg-stone" />
+          <div className="space-y-3 px-3 pb-3 pt-4">
+            <div className="h-6 w-2/3 rounded-pill bg-stone" />
+            <div className="h-4 w-1/3 rounded-pill bg-stone" />
+            <div className="h-11 w-full rounded-pill bg-stone" />
           </div>
         </div>
       ))}
@@ -108,14 +108,14 @@ export function ProductList({
 
     if (state.status === "error") {
       return (
-        <div className="rounded-card border border-border bg-surface p-4">
-          <p role="alert" className="text-text">
+        <div className="flex flex-col items-start gap-4 rounded-card border border-border bg-surface p-6">
+          <p role="alert" className="font-display text-[22px] leading-snug text-text">
             {messageFor(state.error)}
           </p>
           <button
             type="button"
             onClick={retry}
-            className="mt-3 min-h-11 rounded-card bg-primary px-4 text-white hover:opacity-90"
+            className="min-h-11 rounded-pill bg-primary px-5 font-medium text-on-primary transition-opacity duration-200 hover:opacity-85"
           >
             Coba lagi
           </button>
@@ -124,7 +124,7 @@ export function ProductList({
     }
 
     if (state.items.length === 0) {
-      return <p className="rounded-card border border-border bg-surface p-4 text-text">{emptyText}</p>;
+      return <p className="rounded-card border border-border bg-surface p-6 font-display text-[22px] text-text">{emptyText}</p>;
     }
 
     const canLoadMore = limit === undefined && state.items.length < state.total;
@@ -144,7 +144,7 @@ export function ProductList({
               type="button"
               onClick={loadMore}
               disabled={loadingMore}
-              className="min-h-11 rounded-card border border-border bg-surface px-4 text-text hover:bg-background disabled:opacity-60"
+              className="min-h-11 rounded-pill border border-text bg-surface px-5 text-text transition-colors duration-200 hover:bg-stone disabled:opacity-60"
             >
               {loadingMore ? "Memuat…" : "Muat lebih banyak"}
             </button>

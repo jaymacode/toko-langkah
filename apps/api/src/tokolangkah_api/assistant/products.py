@@ -12,11 +12,13 @@ category, description, colour and tags, expanded with a small Indonesian/English
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any, Final
 
 import psycopg
 from pydantic import BaseModel, ConfigDict, Field
 
+from tokolangkah_api.assistant.embeddings import vector_literal
 from tokolangkah_api.assistant.query_parser import ProductFilters
 from tokolangkah_api.assistant.store import run_anon_query
 
@@ -93,9 +95,60 @@ SELECT ranked.external_id, ranked.slug, ranked.name, ranked.price_idr, ranked.co
  LIMIT %(limit)s
 """
 
+# Hybrid: keyword share of the keyword groups (0..1) plus exact cosine similarity to the query.
+# Only rows whose embedding_version equals the query version get a cosine term; others use keyword
+# only. The keyword gate is not applied, so semantic matches can surface. The hard predicates below
+# are the same as _PRODUCT_SQL and still apply before ranking.
+_PRODUCT_HYBRID_SQL: Final = """
+SELECT ranked.external_id, ranked.slug, ranked.name, ranked.price_idr, ranked.color,
+       ranked.category, ranked.description, ranked.tags, ranked.sizes_in_stock,
+       ranked.hybrid_score AS score, ranked.image_path, ranked.image_alt
+  FROM (
+        SELECT scored.*,
+               CASE WHEN scored.cos IS NULL THEN scored.kw
+                    ELSE 0.5 * scored.kw + 0.5 * scored.cos END AS hybrid_score
+          FROM (
+                SELECT p.external_id, p.slug, p.name, p.price_idr, p.color, p.category,
+                       p.description, p.tags, p.image_path, p.image_alt,
+                       ARRAY(SELECT v.size_eu FROM product_variants AS v
+                              WHERE v.product_id = p.id AND v.stock > 0
+                              ORDER BY v.size_eu) AS sizes_in_stock,
+                       (SELECT count(DISTINCT g.gid)
+                          FROM unnest(%(terms)s::text[], %(term_groups)s::int[]) AS g(term, gid)
+                         WHERE strpos(lower(concat_ws(' ', p.name, p.category, p.description,
+                               p.color, array_to_string(p.tags, ' '))), g.term) > 0)
+                              ::double precision
+                           / GREATEST(%(n_groups)s::int, 1) AS kw,
+                       CASE WHEN p.embedding IS NOT NULL AND p.embedding_version = %(version)s
+                            THEN 1 - (p.embedding OPERATOR(extensions.<=>)
+                                      %(qvec)s::extensions.vector)
+                       END AS cos
+                  FROM products AS p
+                 WHERE p.store_id = (SELECT s.id FROM stores AS s WHERE s.external_id = %(store)s)
+                   AND (%(category)s::text IS NULL OR p.category = %(category)s)
+                   AND (%(price_lt)s::bigint IS NULL OR p.price_idr < %(price_lt)s)
+                   AND (%(price_lte)s::bigint IS NULL OR p.price_idr <= %(price_lte)s)
+                   AND (%(color)s::text IS NULL
+                        OR strpos(lower(coalesce(p.color, '')), %(color)s) > 0)
+                   AND (%(size)s::int IS NULL OR EXISTS (
+                        SELECT 1 FROM product_variants AS v
+                         WHERE v.product_id = p.id AND v.size_eu = %(size)s AND v.stock > 0))
+                   AND EXISTS (SELECT 1 FROM product_variants AS v
+                                WHERE v.product_id = p.id AND v.stock > 0)
+               ) AS scored
+       ) AS ranked
+ WHERE ranked.hybrid_score > 0
+ ORDER BY ranked.hybrid_score DESC, ranked.price_idr ASC, ranked.slug ASC
+ LIMIT %(limit)s
+"""
+
 
 def build_product_query(filters: ProductFilters, limit: int) -> tuple[str, dict[str, Any]]:
     """Return (static SQL, named parameters). User text only ever appears in the parameters."""
+    return _PRODUCT_SQL, _product_params(filters, limit)
+
+
+def _product_params(filters: ProductFilters, limit: int) -> dict[str, Any]:
     if not 1 <= limit <= MAX_LIMIT:
         raise ValueError("limit must be between 1 and 10")
     terms: list[str] = []
@@ -104,7 +157,7 @@ def build_product_query(filters: ProductFilters, limit: int) -> tuple[str, dict[
         for term in group:
             terms.append(term)
             term_groups.append(group_id)
-    params: dict[str, Any] = {
+    return {
         "store": DEMO_STORE_EXTERNAL_ID,
         "category": filters.category,
         "price_lt": filters.price_lt,
@@ -116,7 +169,17 @@ def build_product_query(filters: ProductFilters, limit: int) -> tuple[str, dict[
         "has_keywords": bool(terms),
         "limit": limit,
     }
-    return _PRODUCT_SQL, params
+
+
+def build_hybrid_product_query(
+    filters: ProductFilters, limit: int, vector_text: str, version: str
+) -> tuple[str, dict[str, Any]]:
+    params = _product_params(filters, limit)
+    params.pop("has_keywords")
+    params["n_groups"] = len(filters.keywords)
+    params["qvec"] = vector_text
+    params["version"] = version
+    return _PRODUCT_HYBRID_SQL, params
 
 
 def _matched_terms(groups: list[tuple[str, ...]], keywords: list[str], hay: str) -> list[str]:
@@ -128,10 +191,26 @@ def _matched_terms(groups: list[tuple[str, ...]], keywords: list[str], hay: str)
 
 
 def search_products(
-    conn: psycopg.Connection[Any], filters: ProductFilters, limit: int = 5
+    conn: psycopg.Connection[Any],
+    filters: ProductFilters,
+    limit: int = 5,
+    *,
+    query_vector: Sequence[float] | None = None,
+    version: str | None = None,
 ) -> list[ProductHit]:
-    """Return in-stock products matching the filters. Raises StoreUnavailable on DB failure."""
-    sql, params = build_product_query(filters, limit)
+    """Return in-stock products matching the filters. Raises StoreUnavailable on DB failure.
+
+    With query_vector and version (hybrid), ranking adds cosine similarity for rows embedded under
+    the same version. Without them, the keyword baseline runs unchanged.
+    """
+    if (query_vector is None) != (version is None):
+        raise ValueError("query_vector and version are passed together")
+    if query_vector is None or version is None:
+        sql, params = build_product_query(filters, limit)
+    else:
+        sql, params = build_hybrid_product_query(
+            filters, limit, vector_literal(query_vector), version
+        )
     rows = run_anon_query(conn, sql, params)
     groups = keyword_groups(filters.keywords)
     hits: list[ProductHit] = []

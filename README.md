@@ -45,9 +45,11 @@ Node 22+ with pnpm 9.15.9, Python 3.12 with uv 0.13.x, Docker (local PostgreSQL 
 | `python scripts/live_smoke.py [API_URL]` | LIVE: Supabase sign-in → API (JWKS) → RLS/ticket/staff checks | 2 = BLOCKED |
 | `pnpm --filter web e2e:live` | LIVE browser journeys, no doubles (`LIVE_VIDEO=1` records videos to `artifacts/verification/live/runs/`) | |
 | `cd apps/api && uv run python -m tokolangkah_api.admin.loadcheck --turns 50` | in-process latency check (rules provider) → `artifacts/perf/` | 2 = BLOCKED (no URL) |
+| `cd apps/api && uv run python -m tokolangkah_api.admin.embed` | embeds changed policy chunks + products in ONE batched OpenAI request (budget-guarded, ledger source `ingest`) | 2 = BLOCKED (no key/model/budget/URL) |
+| `cd apps/api && uv run python -m tokolangkah_api.evals.run --mode retrieval-live` | recall@5 keyword vs hybrid, all queries in ONE embeddings request (`--mode retrieval-fixture` = fake embeddings, plumbing only) | 2 = BLOCKED |
 
 ## Known limitations
-- Live model (`ASSISTANT_PROVIDER=openai`, gpt-6-luna) works end to end with a USD budget guard, but the current OpenAI account allows only 50 requests/day, so Gate C AI-quality metrics are only partially measured (13 graded live turns). Embeddings/hybrid retrieval are not implemented (keyword/FTS only).
+- Live model (`ASSISTANT_PROVIDER=openai`, gpt-6-luna) works end to end with a USD budget guard, but the OpenAI account first hit its 50 requests/day cap and then ran out of credit (`credit_balance_exhausted`), so Gate C AI-quality metrics are only partially measured (13 graded live turns). Hybrid retrieval (`RETRIEVAL_MODE=hybrid`, text-embedding-3-small, pgvector) is implemented and tested with fake embeddings; live ingest/eval is blocked by the same credit balance.
 - Not deployed; GitHub CI is written but has not run (no remote). See docs/DEPLOYMENT.md, including the open "dedicated database role" hardening item.
 - No SSE streaming (turns are request/response). Restored conversations show the transcript but not the previous filter chips/product panel.
 - Supabase leaked-password protection is a dashboard setting still to enable.

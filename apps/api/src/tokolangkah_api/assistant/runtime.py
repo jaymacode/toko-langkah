@@ -18,7 +18,8 @@ from typing import Any, Final
 import psycopg
 from pydantic import ValidationError
 
-from tokolangkah_api.assistant.errors import ToolBudgetExceeded, ToolRejected
+from tokolangkah_api.assistant.embeddings import Embedder
+from tokolangkah_api.assistant.errors import AssistantError, ToolBudgetExceeded, ToolRejected
 from tokolangkah_api.assistant.policies import Evidence, search_policies
 from tokolangkah_api.assistant.products import ProductHit, search_products
 from tokolangkah_api.assistant.query_parser import MAX_KEYWORDS, ProductFilters, parse_product_query
@@ -89,8 +90,12 @@ class ToolRunner:
         client_message_id: uuid.UUID | None = None,
         base_filters: ProductFilters | None = None,
         user_text: str | None = None,
+        embedder: Embedder | None = None,
     ) -> None:
         self._conn = conn
+        # None: keyword retrieval. Set (RETRIEVAL_MODE=hybrid): one embeddings request per search
+        # call. Any embedding failure or budget refusal falls back to keyword search for that call.
+        self._embedder = embedder
         self.max_calls = max_calls
         self.user_id = user_id
         self.conversation_id = conversation_id
@@ -130,8 +135,29 @@ class ToolRunner:
             return self._get_order_status(parsed)
         raise ToolRejected("unknown_tool")  # pragma: no cover - MODEL_TOOLS guards this
 
+    def _query_vector(self, text: str) -> list[float] | None:
+        """One embedding for the search text, or None (keyword fallback, outcome recorded)."""
+        if self._embedder is None:
+            return None
+        try:
+            vectors = self._embedder.embed([text])
+        except AssistantError:
+            self.outcomes.append(("embedding", "embedding_fallback"))
+            return None
+        return vectors[0]
+
     def _search_policies(self, args: SearchPoliciesArgs) -> dict[str, Any]:
-        found = search_policies(self._conn, args.query, args.limit)
+        vector = self._query_vector(args.query)
+        if vector is not None and self._embedder is not None:
+            found = search_policies(
+                self._conn,
+                args.query,
+                args.limit,
+                query_vector=vector,
+                version=self._embedder.version,
+            )
+        else:
+            found = search_policies(self._conn, args.query, args.limit)
         for item in found:
             self.evidence.setdefault(item.chunk_id, item)
         self.outcomes.append(("search_policies", "ok"))
@@ -146,7 +172,17 @@ class ToolRunner:
         effective = merge_filters(
             self.base_filters, self._constrain(parse_product_query(args.query))
         )
-        hits = search_products(self._conn, effective, args.limit)
+        vector = self._query_vector(args.query)
+        if vector is not None and self._embedder is not None:
+            hits = search_products(
+                self._conn,
+                effective,
+                args.limit,
+                query_vector=vector,
+                version=self._embedder.version,
+            )
+        else:
+            hits = search_products(self._conn, effective, args.limit)
         self.product_filters = effective
         self.products = hits
         self.outcomes.append(("search_products", "ok"))

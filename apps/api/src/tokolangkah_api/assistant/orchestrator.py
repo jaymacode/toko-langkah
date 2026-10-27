@@ -20,6 +20,7 @@ from typing import Any, Final
 import psycopg
 
 from tokolangkah_api.assistant.citations import Claim, normalized_tokens, validate_claims
+from tokolangkah_api.assistant.embeddings import Embedder
 from tokolangkah_api.assistant.errors import AssistantError, AssistantUnavailable
 from tokolangkah_api.assistant.intent import (
     is_guarantee_request,
@@ -150,6 +151,7 @@ def run_turn(
     *,
     planner: Planner,
     max_tool_calls: int,
+    embedder: Embedder | None = None,
 ) -> TurnResult:
     started = time.monotonic()
     tools = ToolRunner(
@@ -160,6 +162,7 @@ def run_turn(
         client_message_id=turn.client_message_id,
         base_filters=turn.filters,
         user_text=turn.content,
+        embedder=embedder,
     )
     try:
         result = _route(turn, planner, tools)

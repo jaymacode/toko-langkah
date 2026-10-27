@@ -22,7 +22,7 @@ import psycopg
 
 from tokolangkah_api.assistant.errors import AssistantUnavailable
 
-Source = Literal["chat", "eval"]
+Source = Literal["chat", "eval", "ingest"]
 
 # Conservative: real tokenisers usually give fewer tokens than one per three characters.
 CHARS_PER_TOKEN: Final = 3

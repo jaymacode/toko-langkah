@@ -7,12 +7,13 @@ from typing import cast
 
 import openai
 
+from tokolangkah_api.assistant.embeddings import Embedder, EmbeddingClientLike, OpenAIEmbedder
 from tokolangkah_api.assistant.errors import AssistantUnavailable
 from tokolangkah_api.assistant.openai_planner import CALL_TIMEOUT_SECONDS, ChatLike, OpenAIPlanner
 from tokolangkah_api.assistant.planner import Planner
 from tokolangkah_api.assistant.rules_planner import RulesPlanner
 from tokolangkah_api.assistant.spend import DbSpendLedger, Source, SpendPolicy, UnavailableLedger
-from tokolangkah_api.settings import AssistantProvider, Settings
+from tokolangkah_api.settings import AssistantProvider, RetrievalMode, Settings
 
 
 def build_planner(settings: Settings, *, source: Source = "chat") -> Planner:
@@ -47,3 +48,33 @@ def build_planner(settings: Settings, *, source: Source = "chat") -> Planner:
         max_output_tokens=settings.openai_max_output_tokens,
     )
     return OpenAIPlanner(cast(ChatLike, client), model=model, spend=spend)
+
+
+def build_embedder(settings: Settings, *, source: Source = "chat") -> Embedder | None:
+    """The query embedder for RETRIEVAL_MODE=hybrid; None for keyword retrieval (no model call)."""
+    if settings.retrieval_mode is not RetrievalMode.HYBRID:
+        return None
+    return build_embedding_client(settings, source=source)
+
+
+def build_embedding_client(settings: Settings, *, source: Source) -> OpenAIEmbedder:
+    """An embedder with the budget guard and ledger, regardless of retrieval mode.
+
+    Requires the key and OPENAI_EMBEDDING_MODEL. Without a database every embedding is refused.
+    """
+    api_key = settings.openai_api_key
+    model = settings.openai_embedding_model
+    if api_key is None or model is None:
+        raise AssistantUnavailable("provider_not_configured")
+    client = openai.OpenAI(api_key=api_key.get_secret_value(), max_retries=0)
+    url = settings.request_database_url()
+    ledger = DbSpendLedger(url.get_secret_value()) if url is not None else UnavailableLedger()
+    spend = SpendPolicy(
+        source=source,
+        ledger=ledger,
+        budget_usd=Decimal(str(settings.live_eval_budget_usd)),
+        price_input_per_mtok=settings.openai_embedding_price_per_mtok,
+        price_output_per_mtok=Decimal("0"),
+        max_output_tokens=0,  # embeddings produce no completion tokens
+    )
+    return OpenAIEmbedder(cast(EmbeddingClientLike, client), model=model, spend=spend)

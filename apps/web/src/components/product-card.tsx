@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { formatIdr } from "@/lib/format";
 import type { Product } from "@/lib/api";
+import { SizeRuler } from "@/components/size-ruler";
 
 /**
  * One catalogue item. Availability is shown per size with the words "habis"
@@ -19,46 +20,34 @@ export function ProductCard({
 }) {
   const Heading = headingLevel === 2 ? "h2" : "h3";
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-card border border-border bg-surface">
-      <div className="relative aspect-square w-full bg-background">
+    <article className="group flex h-full flex-col rounded-card border border-border bg-surface p-1.5 transition-shadow duration-300 ease-out-expo hover:shadow-[0_18px_40px_-24px_rgba(21,22,23,0.35)]">
+      <div className="relative aspect-square w-full overflow-hidden rounded-bay bg-stone">
         {product.image_path ? (
           <Image
             src={product.image_path}
             alt={product.image_alt}
             fill
             loading={eager ? "eager" : "lazy"}
-            sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 90vw"
-            className="object-contain p-4"
+            sizes="(min-width: 1024px) 380px, (min-width: 640px) 45vw, 90vw"
+            className="object-contain transition-transform duration-700 ease-out-expo group-hover:scale-[1.03]"
           />
         ) : (
           <p className="flex h-full items-center justify-center p-4 text-sm text-muted">
             Foto belum tersedia
           </p>
         )}
+        <p data-price className="tabular absolute right-0 top-0 rounded-bl-bay bg-surface py-2 pl-3.5 pr-3 text-[17px] font-semibold text-text">
+          {formatIdr(product.price_idr)}
+        </p>
       </div>
-      <div className="flex flex-1 flex-col gap-3 p-4">
+      <div className="flex flex-1 flex-col gap-4 px-3 pb-3 pt-4">
         <div>
-          <Heading className="text-lg font-semibold text-text">{product.name}</Heading>
-          {product.color ? <p className="mt-1 text-sm text-muted">Warna {product.color}</p> : null}
+          <Heading className="font-display text-[22px] font-medium leading-tight text-text">{product.name}</Heading>
+          {product.color ? <p className="mt-0.5 text-sm text-muted">Warna {product.color}</p> : null}
         </div>
-        <p className="text-lg font-semibold text-text">{formatIdr(product.price_idr)}</p>
-        <div>
-          <p className="text-sm text-muted">Ukuran EU</p>
-          <ul className="mt-2 flex flex-wrap gap-2" aria-label={`Ukuran ${product.name}`}>
-            {product.sizes.map((size) => (
-              <li
-                key={size.size_eu}
-                className={
-                  size.in_stock
-                    ? "flex min-h-11 min-w-11 flex-col items-center justify-center rounded-card border border-border px-2 text-text"
-                    : "flex min-h-11 min-w-11 flex-col items-center justify-center rounded-card border border-dashed border-border bg-background px-2 text-muted"
-                }
-              >
-                <span className={size.in_stock ? "" : "line-through"}>{size.size_eu}</span>
-                {size.in_stock ? null : <span className="text-xs">habis</span>}
-              </li>
-            ))}
-          </ul>
+        <div className="mt-auto">
+          <p className="mb-1 text-[12px] font-medium uppercase tracking-[0.08em] text-muted">Ukuran EU</p>
+          <SizeRuler label={`Ukuran ${product.name}`} sizes={product.sizes} />
         </div>
       </div>
     </article>

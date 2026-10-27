@@ -22,7 +22,7 @@ export function OrdersView({ mode }: { mode: AppMode }) {
     <SiteFrame mode={mode} current="pesanan">
       <section aria-labelledby="orders-heading" className="flex flex-col gap-6">
         <div>
-          <h1 id="orders-heading" className="text-2xl font-semibold text-text">
+          <h1 id="orders-heading" className="font-display text-[clamp(40px,6vw,72px)] font-bold uppercase leading-[0.86] text-text">
             Pesanan Saya
           </h1>
           <p className="mt-2 text-muted">Pesanan pada akun yang sedang masuk. Data demo, fiktif.</p>
@@ -68,7 +68,7 @@ function OrdersList() {
     return <p role="status" className="text-muted">Memuat…</p>;
   }
   if (auth.sessionStatus === "not_configured") {
-    return <p role="status" className="rounded-card border border-border bg-surface p-4 text-text">{NOT_CONFIGURED_MESSAGE}</p>;
+    return <p role="status" className="rounded-card border border-border bg-surface p-5 text-text">{NOT_CONFIGURED_MESSAGE}</p>;
   }
   if (!signedIn) {
     return <SignedOutNotice message="Masuk untuk melihat pesanan Anda." />;
@@ -80,7 +80,7 @@ function OrdersList() {
     return <ApiErrorNotice error={state.error} onRetry={retry} />;
   }
   if (state.items.length === 0) {
-    return <p className="rounded-card border border-border bg-surface p-4 text-text">Belum ada pesanan pada akun ini.</p>;
+    return <p className="rounded-card border border-border bg-surface p-5 text-text">Belum ada pesanan pada akun ini.</p>;
   }
 
   return (
@@ -89,7 +89,7 @@ function OrdersList() {
         <li key={order.order_number} className="min-w-0">
           <Link
             href={`/pesanan/${encodeURIComponent(order.order_number)}`}
-            className="flex min-h-11 flex-col gap-1 rounded-card border border-border bg-surface p-4 hover:bg-background"
+            className="flex min-h-11 flex-col gap-1 rounded-card border border-border bg-surface p-5 hover:bg-background"
           >
             <span className="text-lg font-semibold text-text break-all">Pesanan {order.order_number}</span>
             <span className="text-sm text-text">Status: {orderStatusLabel(order.status)}</span>

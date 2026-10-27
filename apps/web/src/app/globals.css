@@ -1,21 +1,35 @@
 @import "tailwindcss";
 
-/* Design tokens from docs/DESIGN.md. Tailwind emits these as CSS variables on :root. */
+/* TokoLangkah world (user-pinned reference: amble.framer.media). Paper-grey ground, white framed
+   cards with a stone photo bay, ink controls, one signal red. Contrast checked on #F7F7F5:
+   text 17.4:1, muted 6.0:1, quiet (large display only) 3.4:1, accent-ink 5.0:1. */
 @theme {
-  --color-background: #F7F7F2;
+  --color-background: #F7F7F5;
   --color-surface: #FFFFFF;
-  --color-text: #17201C;
-  --color-muted: #526158;
-  --color-primary: #16634B;
-  --color-border: #D5DDD7;
+  --color-stone: #ECECE8;
+  --color-text: #151617;
+  --color-muted: #5A5E62;
+  --color-quiet: #85898D;
+  --color-primary: #151617;
+  --color-on-primary: #FFFFFF;
+  --color-border: #E3E3DE;
+  --color-rule: #D2D2CC;
+  --color-accent: #E8452B;
+  --color-accent-ink: #B9321B;
 
-  --radius-card: 12px;
+  --radius-card: 20px;
+  --radius-bay: 14px;
+  --radius-pill: 999px;
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 html {
   -webkit-text-size-adjust: 100%;
+  scrollbar-color: var(--color-rule) transparent;
 }
 
 body {
@@ -25,11 +39,40 @@ body {
   font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.5;
+  font-feature-settings: "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-text);
+  color: var(--color-background);
+}
+
+input,
+textarea {
+  caret-color: var(--color-accent);
+}
+
+a {
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+
+/* Prices, sizes and dates line up. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-primary);
-  outline-offset: 2px;
+  outline: 2px solid var(--color-text);
+  outline-offset: 3px;
 }
 
 /* Reduced motion (DESIGN.md): stop animations and transitions everywhere, including the

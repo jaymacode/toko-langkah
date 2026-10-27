@@ -85,7 +85,7 @@ export function ConfirmDialog({
         onKeyDown={handleKeyDown}
         className="flex max-h-full w-full flex-col gap-4 overflow-y-auto rounded-t-card bg-surface p-5 shadow-lg md:max-w-md md:rounded-card md:p-6"
       >
-        <h2 id={titleId} className="text-xl font-semibold text-text">
+        <h2 id={titleId} className="font-display text-[26px] font-medium leading-tight text-text">
           {title}
         </h2>
         <p id={descriptionId} className="text-text">
@@ -96,14 +96,14 @@ export function ConfirmDialog({
             ref={cancelRef}
             type="button"
             onClick={onCancel}
-            className="min-h-11 rounded-card border border-border bg-surface px-4 text-text hover:bg-background"
+            className="min-h-11 rounded-pill border border-rule bg-surface px-5 text-text transition-colors duration-200 hover:border-text"
           >
             {cancelLabel}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="min-h-11 rounded-card bg-primary px-4 font-semibold text-white hover:opacity-90"
+            className="min-h-11 rounded-pill bg-primary px-5 font-medium text-on-primary transition-opacity duration-200 hover:opacity-85"
           >
             {confirmLabel}
           </button>

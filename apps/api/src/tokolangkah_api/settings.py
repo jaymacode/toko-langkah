@@ -27,6 +27,13 @@ class AssistantProvider(StrEnum):
     OPENAI = "openai"
 
 
+class RetrievalMode(StrEnum):
+    """`keyword` is the baseline. `hybrid` adds exact cosine similarity over stored embeddings."""
+
+    KEYWORD = "keyword"
+    HYBRID = "hybrid"
+
+
 class Settings(BaseSettings):
     """Runtime configuration. Secret fields are SecretStr so repr and logs never show values."""
 
@@ -61,6 +68,12 @@ class Settings(BaseSettings):
     openai_price_output_per_mtok: Decimal = Field(default=Decimal("1.20"), ge=0, le=1000)
     # Hard cap on completion tokens per model call; also used in the worst-case budget check.
     openai_max_output_tokens: int = Field(default=600, ge=64, le=4000)
+    # Embedding model for hybrid retrieval. Vectors are always 1536-dimensional (see embeddings.py).
+    openai_embedding_model: str | None = None
+    retrieval_mode: RetrievalMode = RetrievalMode.KEYWORD
+    # Conservative USD per 1M input tokens for the embedding model. The default is above the
+    # text-embedding-3-small list price, so the budget guard never under-counts.
+    openai_embedding_price_per_mtok: Decimal = Field(default=Decimal("0.02"), ge=0, le=1000)
 
     @field_validator("allowed_origins", mode="before")
     @classmethod
@@ -112,6 +125,13 @@ class Settings(BaseSettings):
             return None
         return value
 
+    @field_validator("openai_embedding_model", mode="after")
+    @classmethod
+    def _blank_embedding_model_is_unset(cls, value: str | None) -> str | None:
+        if value is None or not value.strip():
+            return None
+        return value.strip()
+
     @field_validator("supabase_url", mode="after")
     @classmethod
     def _blank_url_is_unset(cls, value: str | None) -> str | None:
@@ -144,6 +164,15 @@ class Settings(BaseSettings):
     def request_database_url(self) -> SecretStr | None:
         """The connection used by request handlers: API_DATABASE_URL when set, else DATABASE_URL."""
         return self.api_database_url if self.api_database_url is not None else self.database_url
+
+    @model_validator(mode="after")
+    def _validate_retrieval_mode(self) -> Settings:
+        if self.retrieval_mode is RetrievalMode.HYBRID:
+            if self.openai_api_key is None:
+                raise ValueError("RETRIEVAL_MODE=hybrid requires OPENAI_API_KEY")
+            if self.openai_embedding_model is None:
+                raise ValueError("RETRIEVAL_MODE=hybrid requires OPENAI_EMBEDDING_MODEL")
+        return self
 
     @model_validator(mode="after")
     def _validate_assistant_provider(self) -> Settings:

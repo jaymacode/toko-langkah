@@ -86,14 +86,14 @@ export function SourceDrawer({ open, onClose, source }: SourceDrawerProps) {
                 ? "Sumber contoh (statis, bukan data langsung)"
                 : "Kutipan dari kebijakan toko yang berlaku"}
             </p>
-            <h2 id="source-drawer-title" className="mt-1 text-xl font-semibold text-text">
+            <h2 id="source-drawer-title" className="mt-1 font-display text-[26px] font-medium leading-tight text-text">
               {source.policyTitle}
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="min-h-11 min-w-11 shrink-0 rounded-card border border-border px-3 text-text hover:bg-background"
+            className="min-h-11 min-w-11 shrink-0 rounded-pill border border-rule bg-surface px-5 text-text transition-colors duration-200 hover:border-text"
           >
             Tutup
           </button>

@@ -70,9 +70,10 @@ export function SignInView({ mode }: { mode: AppMode }) {
 
   return (
     <SiteFrame mode={mode} current={null}>
-      <section aria-labelledby="signin-heading" className="mx-auto flex max-w-md flex-col gap-6">
+      <div className="grid items-stretch gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:gap-14">
+      <section aria-labelledby="signin-heading" className="flex w-full max-w-md flex-col gap-6 lg:py-6">
         <div>
-          <h1 id="signin-heading" className="text-2xl font-semibold text-text">
+          <h1 id="signin-heading" className="font-display text-[clamp(40px,6vw,72px)] font-bold uppercase leading-[0.86] text-text">
             Masuk
           </h1>
           <p className="mt-2 text-muted">
@@ -81,14 +82,14 @@ export function SignInView({ mode }: { mode: AppMode }) {
         </div>
 
         {notConfigured ? (
-          <p role="status" className="rounded-card border border-border bg-surface p-4 text-text">
+          <p role="status" className="rounded-card border border-border bg-surface p-5 text-text">
             {NOT_CONFIGURED_MESSAGE}
           </p>
         ) : (
           <form
             onSubmit={handleSubmit}
             aria-describedby={error ? errorId : undefined}
-            className="flex flex-col gap-4 rounded-card border border-border bg-surface p-4 md:p-6"
+            className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 md:p-6"
           >
             <div className="flex flex-col gap-2">
               <label htmlFor={emailId} className="font-semibold text-text">
@@ -106,7 +107,7 @@ export function SignInView({ mode }: { mode: AppMode }) {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 aria-invalid={error ? true : undefined}
-                className="min-h-11 rounded-card border border-border bg-background px-3 text-text"
+                className="min-h-11 rounded-card border border-quiet bg-surface px-3 text-text"
               />
             </div>
             <div className="flex flex-col gap-2">
@@ -122,7 +123,7 @@ export function SignInView({ mode }: { mode: AppMode }) {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 aria-invalid={error ? true : undefined}
-                className="min-h-11 rounded-card border border-border bg-background px-3 text-text"
+                className="min-h-11 rounded-card border border-quiet bg-surface px-3 text-text"
               />
             </div>
             {error ? (
@@ -133,13 +134,21 @@ export function SignInView({ mode }: { mode: AppMode }) {
             <button
               type="submit"
               disabled={pending}
-              className="min-h-11 rounded-card bg-primary px-4 font-semibold text-white hover:opacity-90 disabled:opacity-60"
+              className="min-h-11 rounded-pill bg-primary px-5 font-medium text-on-primary transition-opacity duration-200 hover:opacity-85 disabled:opacity-60"
             >
               {pending ? "Memeriksa…" : "Masuk"}
             </button>
           </form>
         )}
       </section>
+      <div
+        aria-hidden="true"
+        className="relative hidden min-h-[30rem] overflow-hidden rounded-card bg-stone lg:block"
+      >
+        {/* CSS background, not <img>: hidden below lg, so phones never download it. */}
+        <div className="absolute inset-0 bg-stone bg-[url(/products/langkah-knit.png)] bg-cover bg-center" />
+      </div>
+      </div>
     </SiteFrame>
   );
 }

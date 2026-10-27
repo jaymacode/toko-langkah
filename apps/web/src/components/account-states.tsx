@@ -17,11 +17,11 @@ export function accountErrorMessage(error: ApiError): string {
 /** Signed-out state with a link to the sign-in page. Used for signed-out and expired sessions. */
 export function SignedOutNotice({ message }: { message: string }) {
   return (
-    <div className="rounded-card border border-border bg-surface p-4">
+    <div className="rounded-card border border-border bg-surface p-5">
       <p className="text-text">{message}</p>
       <Link
         href="/masuk"
-        className="mt-3 inline-flex min-h-11 items-center rounded-card bg-primary px-4 text-white hover:opacity-90"
+        className="mt-3 inline-flex min-h-11 items-center rounded-pill bg-primary px-5 font-medium text-on-primary transition-opacity duration-200 hover:opacity-85"
       >
         Buka halaman masuk
       </Link>
@@ -31,14 +31,14 @@ export function SignedOutNotice({ message }: { message: string }) {
 
 export function ErrorNotice({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="rounded-card border border-border bg-surface p-4">
+    <div className="rounded-card border border-border bg-surface p-5">
       <p role="alert" className="text-text">
         {message}
       </p>
       <button
         type="button"
         onClick={onRetry}
-        className="mt-3 min-h-11 rounded-card bg-primary px-4 text-white hover:opacity-90"
+        className="mt-3 min-h-11 rounded-pill bg-primary px-5 font-medium text-on-primary transition-opacity duration-200 hover:opacity-85"
       >
         Coba lagi
       </button>

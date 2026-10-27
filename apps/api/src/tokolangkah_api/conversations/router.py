@@ -9,14 +9,15 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Request, Response
 
 from tokolangkah_api import db_session
+from tokolangkah_api.assistant.embeddings import Embedder
 from tokolangkah_api.assistant.orchestrator import TurnInput, run_turn
 from tokolangkah_api.assistant.planner import Planner
-from tokolangkah_api.assistant.providers import build_planner
+from tokolangkah_api.assistant.providers import build_embedder, build_planner
 from tokolangkah_api.auth import AuthenticatedUser, current_user
 from tokolangkah_api.conversations import repository, turns
 from tokolangkah_api.conversations.models import (
@@ -124,6 +125,14 @@ def list_own_tickets(
         return TicketList(items=repository.own_tickets(cursor, user.user_id))
 
 
+def _embedder(request: Request) -> Embedder | None:
+    """The query embedder for hybrid retrieval, built once per app (None for keyword mode)."""
+    state = request.app.state
+    if not hasattr(state, "embedder"):
+        state.embedder = build_embedder(state.settings)
+    return cast(Embedder | None, state.embedder)
+
+
 def _planner(request: Request) -> Planner:
     """The configured planner, built once per app. Raises AssistantUnavailable when none is set."""
     state = request.app.state
@@ -174,6 +183,7 @@ def post_message(
             ),
             planner=planner,
             max_tool_calls=settings.max_tool_calls,
+            embedder=_embedder(request),
         )
         envelope = TurnEnvelope(
             message_id=message_id,
