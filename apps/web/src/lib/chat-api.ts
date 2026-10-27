@@ -201,14 +201,32 @@ export type ConversationMessage = {
   created_at: string;
 };
 
+/** Filters and products of the newest assistant turn. Restores the chips and the product panel. */
+export type LatestTurn = {
+  filters: ProductFilters | null;
+  products: ProductHit[];
+};
+
 export type ConversationHistory = {
   id: string;
   messages: ConversationMessage[];
+  latest: LatestTurn | null;
 };
+
+/** Runtime guard for the restore field. Extra fields are tolerated; the typed fields must match. */
+export function isLatestTurn(value: unknown): value is LatestTurn {
+  return (
+    isRecord(value) &&
+    (value.filters === null || isProductFilters(value.filters)) &&
+    Array.isArray(value.products) &&
+    value.products.every(isProductHit)
+  );
+}
 
 /**
  * Reads the transcript of one of the caller's conversations (GET /conversations/{id}).
- * Assistant rows carry plain text only, so restored answers have no citations or cards.
+ * Assistant rows carry plain text only. `latest` holds the filters and products of the newest
+ * product turn, so the chips and the product panel can be restored too.
  */
 export async function getConversation(
   accessToken: string,
@@ -231,7 +249,10 @@ export async function getConversation(
   ) {
     throw invalidResponse();
   }
-  return { id: body.id, messages: body.messages };
+  // An absent field (older API) reads as null; a present value must match the guard.
+  const latest = body.latest === undefined || body.latest === null ? null : body.latest;
+  if (latest !== null && !isLatestTurn(latest)) throw invalidResponse();
+  return { id: body.id, messages: body.messages, latest: latest as LatestTurn | null };
 }
 
 function isConversationMessage(value: unknown): value is ConversationMessage {

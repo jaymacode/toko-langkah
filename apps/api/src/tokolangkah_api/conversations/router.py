@@ -66,16 +66,21 @@ def get_conversation(
 ) -> Conversation:
     conv_uuid = _parse_id(conversation_id)
     settings: Settings = request.app.state.settings
-    with (
-        db_session.connect(settings) as conn,
-        db_session.user_transaction(conn, user.user_id) as cursor,
-    ):
-        header = repository.conversation_header(cursor, conv_uuid)
-        if header is None:
-            raise HTTPException(status_code=404)
-        messages = repository.conversation_messages(cursor, conv_uuid)
+    with db_session.connect(settings) as conn:
+        with db_session.user_transaction(conn, user.user_id) as cursor:
+            header = repository.conversation_header(cursor, conv_uuid)
+            if header is None:
+                raise HTTPException(status_code=404)
+            messages = repository.conversation_messages(cursor, conv_uuid)
+        # Outside the user transaction: the API role runs the SECURITY DEFINER lookup (0010).
+        latest = turns.latest_turn(conn, user.user_id, conv_uuid)
     created_at, _store_id = header
-    return Conversation(id=conv_uuid, created_at=created_at.astimezone(UTC), messages=messages)
+    return Conversation(
+        id=conv_uuid,
+        created_at=created_at.astimezone(UTC),
+        messages=messages,
+        latest=latest,
+    )
 
 
 @router.post(

@@ -29,10 +29,23 @@ class Message(BaseModel):
     created_at: datetime
 
 
+class LatestTurn(BaseModel):
+    """Filters and products of the newest assistant turn, for restoring the panel on reload.
+
+    Only these two fields leave the server; the stored envelope has more, and the rest stays inside.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    filters: ProductFilters | None
+    products: list[ProductHit]
+
+
 class Conversation(BaseModel):
     id: uuid.UUID
     created_at: datetime
     messages: list[Message]
+    latest: LatestTurn | None = None
 
 
 class EscalationRequest(BaseModel):

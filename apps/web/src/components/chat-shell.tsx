@@ -69,6 +69,8 @@ export function ChatShell({ onResults }: { onResults?: (products: ProductHit[]) 
   /** Where keyboard focus goes after a filter chip is removed: another chip's key, "input", or null. */
   const focusAfterChipRemoveRef = useRef<string | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
+  /** True once a turn has been answered in this page load; a late restore then leaves chips and panel alone. */
+  const turnAnsweredRef = useRef(false);
   const [messages, setMessages] = useState<LogEntry[]>([]);
   const [draft, setDraft] = useState("");
   const [filters, setFilters] = useState<ProductFilters | null>(null);
@@ -126,6 +128,12 @@ export function ChatShell({ onResults }: { onResults?: (products: ProductHit[]) 
         const restored = history.messages.map((row) => restoredEntry(row, allocateId()));
         // A message sent while the transcript was loading stays in front; restored rows never replace it.
         setMessages((current) => (current.length === 0 ? restored : current));
+        // The chips and the product panel come from the newest turn, unless a turn was answered already.
+        const latest = history.latest;
+        if (latest !== null && !turnAnsweredRef.current) {
+          setFilters(latest.filters);
+          if (latest.filters !== null || latest.products.length > 0) onResults?.(latest.products);
+        }
       } catch (error: unknown) {
         if (!active) return;
         const apiError = toApiError(error);
@@ -141,7 +149,7 @@ export function ChatShell({ onResults }: { onResults?: (products: ProductHit[]) 
     return () => {
       active = false;
     };
-  }, [userId, sessionStatus]);
+  }, [userId, sessionStatus, onResults]);
 
   function allocateId(): number {
     const id = nextIdRef.current;
@@ -173,6 +181,7 @@ export function ChatShell({ onResults }: { onResults?: (products: ProductHit[]) 
 
       setPending(null);
       setRestoreDoneFor(userId);
+      turnAnsweredRef.current = true;
       setFilters(envelope.filters);
       setFilterHint(false);
       if (envelope.products.length > 0 || envelope.filters !== null) {

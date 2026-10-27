@@ -19,6 +19,7 @@ import psycopg
 from fastapi import HTTPException
 
 from tokolangkah_api.assistant.errors import AssistantUnavailable
+from tokolangkah_api.conversations.models import LatestTurn
 from tokolangkah_api.db_session import Cursor
 from tokolangkah_api.settings import Settings
 
@@ -44,6 +45,7 @@ _SELECT_USER_SQL: Final = (
 _STORED_SQL: Final = (
     "SELECT tokolangkah_private.stored_assistant_envelope(%s::uuid, %s::uuid, %s::uuid)"
 )
+_LATEST_SQL: Final = "SELECT tokolangkah_private.latest_assistant_envelope(%s::uuid, %s::uuid)"
 _STORE_SQL: Final = (
     "SELECT tokolangkah_private.store_assistant_message("
     "%s::uuid, %s::uuid, %s::uuid, %s::text, %s::uuid, %s::jsonb)"
@@ -101,6 +103,22 @@ def stored_envelope(
         return None
     payload = row[0]
     return payload if isinstance(payload, dict) else json.loads(str(payload))
+
+
+def latest_turn(
+    conn: psycopg.Connection[Any],
+    user_id: uuid.UUID,
+    conversation_id: uuid.UUID,
+) -> LatestTurn | None:
+    """Filters and products of the newest assistant turn, or None. Ownership is in the SQL."""
+    with conn.transaction(), conn.cursor() as cursor:
+        cursor.execute(_LATEST_SQL, (conversation_id, user_id))
+        row = cursor.fetchone()
+    if row is None or row[0] is None:
+        return None
+    payload = row[0]
+    data = payload if isinstance(payload, dict) else json.loads(str(payload))
+    return LatestTurn.model_validate(data)
 
 
 def store_envelope(
