@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/* Design tokens from docs/DESIGN.md. Tailwind emits these as CSS variables on :root. */
+@theme {
+  --color-background: #F7F7F2;
+  --color-surface: #FFFFFF;
+  --color-text: #17201C;
+  --color-muted: #526158;
+  --color-primary: #16634B;
+  --color-border: #D5DDD7;
+
+  --radius-card: 12px;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Reduced motion (DESIGN.md): stop animations and transitions everywhere, including the
+   skeleton pulse and hover transitions. Durations are not zero so transitionend/animationend
+   listeners still fire. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}

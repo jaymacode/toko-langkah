@@ -1,0 +1,26 @@
+# Local development database only.
+# The POSTGRES_PASSWORD default "postgres" is a LOCAL DEV DEFAULT. Never reuse it for shared or production
+# environments; set POSTGRES_PASSWORD in your local .env (ignored by Git) to override it.
+services:
+  db:
+    # Pinned: pgvector 0.8.0 on PostgreSQL 17. Verified with `docker pull` on 2026-10-27.
+    image: pgvector/pgvector:0.8.0-pg17
+    environment:
+      # The superuser name is fixed to "postgres"; scripts/tasks.py connects as this user.
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-tokolangkah}
+    ports:
+      - "${POSTGRES_PORT:-54322}:5432"
+    volumes:
+      - tokolangkah_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  tokolangkah_pgdata:

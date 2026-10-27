@@ -1,0 +1,46 @@
+[
+  {
+    "product_id": "product-001",
+    "path": "apps/web/public/products/langkah-knit.png",
+    "kind": "ai_generated_fictional_product",
+    "generator": "built-in Imagegen",
+    "generated_date": "2026-10-27",
+    "prompt": "Use case: product-mockup. Create one square premium ecommerce catalog photograph of a fictional unbranded sage green knitted walking sneaker, cream cushioned sole, rounded toe. Single shoe, complete silhouette, side three-quarter view pointing right, centered with generous margins, warm very light gray studio background, soft natural shadow, realistic construction and materials. No logo, text, watermark, people, extra shoes or collage. Consistent minimalist footwear catalog style.",
+    "sha256": "7d911f0de3552359220ae7148709fec2e85921253d4a3a8c4003ab29da220499",
+    "license_label": "Generated asset; not claimed CC0 or public domain",
+    "review": "Complete single shoe; matching color; no visible brand text; synthetic demo disclosure required"
+  },
+  {
+    "product_id": "product-002",
+    "path": "apps/web/public/products/kota-canvas.png",
+    "kind": "ai_generated_fictional_product",
+    "generator": "built-in Imagegen",
+    "generated_date": "2026-10-27",
+    "prompt": "Use case: product-mockup. Create one square premium ecommerce catalog photograph of a fictional unbranded off-white canvas low-top casual sneaker, flat gum outsole, simple cream laces. Single shoe, complete silhouette, side three-quarter view pointing right, centered with generous margins, warm very light gray studio background, soft natural shadow, realistic construction and materials. No logo, text, watermark, people, extra shoes or collage. Consistent minimalist footwear catalog style.",
+    "sha256": "1457ec7041f59df2946df91fd997713601e8df23cd09c8cffb16a02bcc28b405",
+    "license_label": "Generated asset; not claimed CC0 or public domain",
+    "review": "Complete single shoe; matching color; no visible brand text; synthetic demo disclosure required"
+  },
+  {
+    "product_id": "product-003",
+    "path": "apps/web/public/products/awan-walk.png",
+    "kind": "ai_generated_fictional_product",
+    "generator": "built-in Imagegen",
+    "generated_date": "2026-10-27",
+    "prompt": "Use case: product-mockup. Create one square premium ecommerce catalog photograph of a fictional unbranded navy breathable mesh walking sneaker, thick white cushioning, pale blue heel tab. Single shoe, complete silhouette, side three-quarter view pointing right, centered with generous margins, warm very light gray studio background, soft natural shadow, realistic construction and materials. No logo, text, watermark, people, extra shoes or collage. Consistent minimalist footwear catalog style.",
+    "sha256": "ca9350bb626cb62eb3aaa6a3b646c6caf1c09330cc4228e1b70f9996714253d6",
+    "license_label": "Generated asset; not claimed CC0 or public domain",
+    "review": "Complete single shoe; matching color; no visible brand text; synthetic demo disclosure required"
+  },
+  {
+    "product_id": "product-004",
+    "path": "apps/web/public/products/lintas-trail.png",
+    "kind": "ai_generated_fictional_product",
+    "generator": "built-in Imagegen",
+    "generated_date": "2026-10-27",
+    "prompt": "Use case: product-mockup. Create one square premium ecommerce catalog photograph of a fictional unbranded charcoal and rust orange rugged trail sneaker, dark lugged outsole, reinforced toe. Single shoe, complete silhouette, side three-quarter view pointing right, centered with generous margins, warm very light gray studio background, soft natural shadow, realistic construction and materials. No logo, text, watermark, people, extra shoes or collage. Consistent minimalist footwear catalog style.",
+    "sha256": "c104ac42dfb2db1bc7939585c797284e221517abe30fdfb46f36e13796c5f88d",
+    "license_label": "Generated asset; not claimed CC0 or public domain",
+    "review": "Complete single shoe; matching color; no visible brand text; synthetic demo disclosure required"
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "alias": "customer-a",
+    "email": "customer-a@example.test",
+    "auth_user_id": null,
+    "store_id": "store-demo",
+    "note": "Map alias to a real synthetic Supabase Auth account at seed time."
+  },
+  {
+    "alias": "customer-b",
+    "email": "customer-b@example.test",
+    "auth_user_id": null,
+    "store_id": "store-demo",
+    "note": "Separate account for negative ownership tests."
+  }
+]

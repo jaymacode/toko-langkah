@@ -1,0 +1,79 @@
+[
+  {
+    "id": "product-001",
+    "store_id": "store-demo",
+    "slug": "langkah-knit",
+    "name": "Langkah Knit",
+    "category": "sepatu",
+    "description": "Rajut ringan, bantalan empuk untuk jalan jauh di permukaan kota.",
+    "color": "sage",
+    "price_idr": 449000,
+    "currency": "IDR",
+    "tags": [
+      "jalan jauh",
+      "walking",
+      "ringan",
+      "rajut"
+    ],
+    "image_path": "/products/langkah-knit.png",
+    "image_alt": "Sepatu fiktif Langkah Knit warna sage",
+    "synthetic": true
+  },
+  {
+    "id": "product-002",
+    "store_id": "store-demo",
+    "slug": "kota-canvas",
+    "name": "Kota Canvas",
+    "category": "sepatu",
+    "description": "Sepatu kanvas kasual untuk aktivitas santai, sol gum datar.",
+    "color": "krem",
+    "price_idr": 299000,
+    "currency": "IDR",
+    "tags": [
+      "kasual",
+      "kanvas",
+      "harian"
+    ],
+    "image_path": "/products/kota-canvas.png",
+    "image_alt": "Sepatu fiktif Kota Canvas warna krem",
+    "synthetic": true
+  },
+  {
+    "id": "product-003",
+    "store_id": "store-demo",
+    "slug": "awan-walk",
+    "name": "Awan Walk",
+    "category": "sepatu",
+    "description": "Mesh berventilasi dan bantalan tebal untuk berjalan jauh.",
+    "color": "navy",
+    "price_idr": 500000,
+    "currency": "IDR",
+    "tags": [
+      "jalan jauh",
+      "walking",
+      "mesh"
+    ],
+    "image_path": "/products/awan-walk.png",
+    "image_alt": "Sepatu fiktif Awan Walk warna navy",
+    "synthetic": true
+  },
+  {
+    "id": "product-004",
+    "store_id": "store-demo",
+    "slug": "lintas-trail",
+    "name": "Lintas Trail",
+    "category": "sepatu",
+    "description": "Sepatu jalur tanah dengan pelindung ujung dan sol bertekstur. Tidak ada klaim tahan air.",
+    "color": "charcoal-oranye",
+    "price_idr": 649000,
+    "currency": "IDR",
+    "tags": [
+      "trail",
+      "outdoor",
+      "jalur tanah"
+    ],
+    "image_path": "/products/lintas-trail.png",
+    "image_alt": "Sepatu fiktif Lintas Trail warna charcoal-oranye",
+    "synthetic": true
+  }
+]

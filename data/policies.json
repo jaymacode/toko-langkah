@@ -1,0 +1,82 @@
+[
+  {
+    "id": "policy-returns",
+    "store_id": "store-demo",
+    "title": "Retur dan penukaran",
+    "version": "1",
+    "effective_at": "2026-01-01T00:00:00Z",
+    "active": true,
+    "synthetic": true,
+    "chunks": [
+      {
+        "id": "policy-returns-v1-001",
+        "section": "Syarat retur",
+        "text": "Permintaan retur dapat diajukan dalam 7 hari kalender sejak pesanan diterima. Produk belum dipakai di luar ruangan, label dan kemasan asli lengkap. Tim CS memeriksa pengajuan sebelum menyetujui retur."
+      }
+    ]
+  },
+  {
+    "id": "policy-shipping",
+    "store_id": "store-demo",
+    "title": "Pengiriman",
+    "version": "1",
+    "effective_at": "2026-01-01T00:00:00Z",
+    "active": true,
+    "synthetic": true,
+    "chunks": [
+      {
+        "id": "policy-shipping-v1-001",
+        "section": "Estimasi pengiriman",
+        "text": "Pesanan diproses dalam 1–2 hari kerja setelah pembayaran terkonfirmasi. Estimasi pengiriman domestik 2–5 hari kerja setelah diserahkan ke kurir. Estimasi bukan jaminan tiba pada tanggal tertentu."
+      }
+    ]
+  },
+  {
+    "id": "policy-sizes",
+    "store_id": "store-demo",
+    "title": "Ukuran dan ketersediaan",
+    "version": "1",
+    "effective_at": "2026-01-01T00:00:00Z",
+    "active": true,
+    "synthetic": true,
+    "chunks": [
+      {
+        "id": "policy-sizes-v1-001",
+        "section": "Pemilihan ukuran",
+        "text": "Ukuran mengikuti EU. Ketersediaan diperiksa per ukuran pada katalog. Jika ukuran yang dipilih habis, pelanggan dapat memilih ukuran lain atau menghubungi CS; jangan menjanjikan tanggal restock."
+      }
+    ]
+  },
+  {
+    "id": "policy-payments",
+    "store_id": "store-demo",
+    "title": "Pembayaran",
+    "version": "1",
+    "effective_at": "2026-01-01T00:00:00Z",
+    "active": true,
+    "synthetic": true,
+    "chunks": [
+      {
+        "id": "policy-payments-v1-001",
+        "section": "Konfirmasi pembayaran",
+        "text": "Demo tidak menerima pembayaran sungguhan. Status pembayaran pada data dummy hanya untuk simulasi. Jangan meminta nomor kartu, PIN, OTP, atau transfer uang."
+      }
+    ]
+  },
+  {
+    "id": "policy-support",
+    "store_id": "store-demo",
+    "title": "Bantuan manusia",
+    "version": "1",
+    "effective_at": "2026-01-01T00:00:00Z",
+    "active": true,
+    "synthetic": true,
+    "chunks": [
+      {
+        "id": "policy-support-v1-001",
+        "section": "Eskalasi",
+        "text": "Pelanggan dapat meminta bantuan manusia kapan saja. Asisten membuat tiket berisi ringkasan dan percakapan terkait. Jam layanan contoh Senin–Jumat 09.00–17.00 WIB. Tidak ada jaminan waktu respons di luar jam tersebut."
+      }
+    ]
+  }
+]
