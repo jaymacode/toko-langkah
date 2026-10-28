@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     api_database_url: SecretStr | None = None
     openai_api_key: SecretStr | None = None
     openai_model: str | None = None
+    # OpenAI-compatible endpoint, e.g. https://openrouter.ai/api/v1. Unset means api.openai.com.
+    # Operator configuration only; the model never chooses a destination.
+    openai_base_url: str | None = None
     # Explicit provider. Unset means `rules` outside production and no assistant in production.
     assistant_provider: AssistantProvider | None = None
     assistant_rate_limit_turns: int = Field(default=20, ge=1, le=10_000)
@@ -131,6 +134,26 @@ class Settings(BaseSettings):
         if value is None or not value.strip():
             return None
         return value.strip()
+
+    @field_validator("openai_base_url", mode="after")
+    @classmethod
+    def _validate_openai_base_url(cls, value: str | None) -> str | None:
+        if value is None or not value.strip():
+            return None
+        url = value.strip().rstrip("/")
+        parts = urlsplit(url)
+        if (
+            parts.scheme != "https"
+            or not parts.hostname
+            or parts.username
+            or parts.password
+            or parts.query
+            or parts.fragment
+        ):
+            raise ValueError(
+                "OPENAI_BASE_URL must be an https URL without credentials, query or fragment"
+            )
+        return url
 
     @field_validator("supabase_url", mode="after")
     @classmethod

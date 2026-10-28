@@ -114,6 +114,9 @@ class OpenAIEmbedder:
             response = self.client.embeddings.create(
                 model=self.model,
                 input=list(texts),
+                # Always ask for the column width: larger native vectors (nemotron-3.5-embed-8b,
+                # 4096) are truncated to it; text-embedding-3-small is 1536 already.
+                dimensions=EMBEDDING_DIMENSIONS,
                 timeout=CALL_TIMEOUT_SECONDS,
             )
         except openai.APIError as exc:

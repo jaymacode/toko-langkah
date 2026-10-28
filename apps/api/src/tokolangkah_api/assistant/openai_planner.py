@@ -229,7 +229,8 @@ class OpenAIPlanner:
                     tool_choice="auto",
                     parallel_tool_calls=False,
                     # gpt-6-* models reject function tools on chat.completions unless reasoning is
-                    # off (verified 2026-10-28: HTTP 400 param=reasoning_effort).
+                    # off (verified 2026-10-28: HTTP 400 param=reasoning_effort). OpenRouter
+                    # accepts it too and turns reasoning off for nemotron (verified 2026-10-28).
                     reasoning_effort="none",
                     max_completion_tokens=self._spend.max_output_tokens,
                     timeout=min(CALL_TIMEOUT_SECONDS, remaining),

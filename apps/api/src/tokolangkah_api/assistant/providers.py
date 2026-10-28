@@ -33,6 +33,7 @@ def build_planner(settings: Settings, *, source: Source = "chat") -> Planner:
     # SDK retries are off: the planner owns the bounded retry policy and the deadline.
     client = openai.OpenAI(
         api_key=api_key.get_secret_value(),
+        base_url=settings.openai_base_url,
         max_retries=0,
         timeout=CALL_TIMEOUT_SECONDS,
     )
@@ -66,7 +67,9 @@ def build_embedding_client(settings: Settings, *, source: Source) -> OpenAIEmbed
     model = settings.openai_embedding_model
     if api_key is None or model is None:
         raise AssistantUnavailable("provider_not_configured")
-    client = openai.OpenAI(api_key=api_key.get_secret_value(), max_retries=0)
+    client = openai.OpenAI(
+        api_key=api_key.get_secret_value(), base_url=settings.openai_base_url, max_retries=0
+    )
     url = settings.request_database_url()
     ledger = DbSpendLedger(url.get_secret_value()) if url is not None else UnavailableLedger()
     spend = SpendPolicy(
