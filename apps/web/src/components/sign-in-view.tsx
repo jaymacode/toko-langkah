@@ -7,6 +7,7 @@ import { useAuth } from "@/components/auth-provider";
 import { NOT_CONFIGURED_MESSAGE } from "@/components/account-states";
 import { SiteFrame } from "@/components/site-frame";
 import type { AppMode } from "@/lib/config";
+import { getMe } from "@/lib/api";
 import { getBrowserSupabase } from "@/lib/supabase";
 
 export const INVALID_CREDENTIALS_MESSAGE = "Email atau kata sandi salah.";
@@ -24,6 +25,16 @@ export function signInErrorMessage(error: { status?: number | undefined }): stri
     return INVALID_CREDENTIALS_MESSAGE;
   }
   return SIGN_IN_UNAVAILABLE_MESSAGE;
+}
+
+async function landingFor(accessToken: string | null): Promise<string> {
+  if (accessToken === null) return "/pesanan";
+  try {
+    const me = await getMe(accessToken);
+    return me.staff_stores.length > 0 ? "/staf" : "/pesanan";
+  } catch {
+    return "/pesanan"; // the orders page shows its own error state if the API is down
+  }
 }
 
 /** Email and password sign-in through the Supabase Auth API. The password is never stored or logged. */
@@ -51,7 +62,7 @@ export function SignInView({ mode }: { mode: AppMode }) {
     setPending(true);
     setError(null);
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
@@ -60,7 +71,8 @@ export function SignInView({ mode }: { mode: AppMode }) {
         setPassword("");
         return;
       }
-      router.push("/pesanan");
+      // Staff land in the ticket console; customers on their orders. /me decides, never the form.
+      router.push(await landingFor(data.session?.access_token ?? null));
     } catch {
       setError(SIGN_IN_UNAVAILABLE_MESSAGE);
     } finally {

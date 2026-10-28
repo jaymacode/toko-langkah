@@ -34,18 +34,26 @@ _COUNT_TICKETS_SQL = (
 )
 _LIST_TICKETS_SQL = (
     "SELECT t.id, t.status, t.reason, t.summary, t.created_at, t.updated_at,"
-    " t.conversation_id, t.store_id, COALESCE(c.alias, '-') AS alias"
+    " t.conversation_id, t.store_id, COALESCE(c.alias, '-') AS alias,"
+    " last.role, last.created_at"
     " FROM tickets AS t"
     " LEFT JOIN customers AS c ON c.store_id = t.store_id AND c.user_id = t.customer_id"
+    " LEFT JOIN LATERAL (SELECT m.role, m.created_at FROM messages AS m"
+    " WHERE m.conversation_id = t.conversation_id"
+    " ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last ON true"
     " WHERE t.store_id IN (SELECT store_id FROM store_members WHERE user_id = %s)"
     " AND (%s::text IS NULL OR t.status = %s::text)"
     " ORDER BY t.created_at DESC, t.id DESC LIMIT %s OFFSET %s"
 )
 _DETAIL_TICKET_SQL = (
     "SELECT t.id, t.status, t.reason, t.summary, t.created_at, t.updated_at,"
-    " t.conversation_id, t.store_id, COALESCE(c.alias, '-') AS alias"
+    " t.conversation_id, t.store_id, COALESCE(c.alias, '-') AS alias,"
+    " last.role, last.created_at"
     " FROM tickets AS t"
     " LEFT JOIN customers AS c ON c.store_id = t.store_id AND c.user_id = t.customer_id"
+    " LEFT JOIN LATERAL (SELECT m.role, m.created_at FROM messages AS m"
+    " WHERE m.conversation_id = t.conversation_id"
+    " ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last ON true"
     " WHERE t.id = %s"
     " AND t.store_id IN (SELECT store_id FROM store_members WHERE user_id = %s)"
 )
@@ -61,6 +69,23 @@ _LOCK_TICKET_SQL = (
 _UPDATE_STATUS_SQL = (
     "UPDATE tickets SET status = %s WHERE id = %s"
     " RETURNING id, status, reason, summary, created_at, updated_at"
+)
+_LOCK_REPLY_TICKET_SQL = (
+    "SELECT t.status, t.store_id, t.conversation_id FROM tickets AS t"
+    " WHERE t.id = %s AND t.store_id IN (SELECT store_id FROM store_members WHERE user_id = %s)"
+    " FOR UPDATE OF t"
+)
+_SELECT_STAFF_MESSAGE_SQL = (
+    "SELECT role, content, created_at FROM messages"
+    " WHERE conversation_id = %s AND role = 'staff' AND client_message_id = %s"
+)
+_INSERT_STAFF_MESSAGE_SQL = (
+    "INSERT INTO messages (conversation_id, role, content, client_message_id, author_id)"
+    " VALUES (%s, 'staff', %s, %s, %s)"
+    " RETURNING role, content, created_at"
+)
+_SELECT_TICKET_SQL = (
+    "SELECT id, status, reason, summary, created_at, updated_at FROM tickets WHERE id = %s"
 )
 _INSERT_AUDIT_SQL = (
     "INSERT INTO audit_events (store_id, actor_id, action, resource_id) VALUES (%s, %s, %s, %s)"
@@ -84,7 +109,8 @@ def is_staff(cursor: Cursor, user_id: uuid.UUID) -> bool:
 
 
 def _row_to_staff_ticket(row: tuple[Any, ...]) -> StaffTicket:
-    ticket_id, status, reason, summary, created, updated, _conv, _store, alias = row
+    (ticket_id, status, reason, summary, created, updated) = row[:6]
+    alias, last_role, last_at = row[8:11]
     return StaffTicket(
         id=ticket_id,
         status=status,
@@ -93,6 +119,8 @@ def _row_to_staff_ticket(row: tuple[Any, ...]) -> StaffTicket:
         created_at=created.astimezone(UTC),
         updated_at=updated.astimezone(UTC),
         customer_alias=alias,
+        last_message_role=last_role,
+        last_message_at=None if last_at is None else last_at.astimezone(UTC),
     )
 
 
@@ -162,4 +190,81 @@ def change_ticket_status(
         summary=updated[3],
         created_at=updated[4].astimezone(UTC),
         updated_at=updated[5].astimezone(UTC),
+    )
+
+
+IN_PROGRESS = "in_progress"
+
+
+class TicketResolved(Exception):
+    """A reply was sent to a resolved ticket: the conversation is back with the assistant."""
+
+
+class ConflictingStaffMessage(Exception):
+    """The client_message_id was already used for different text."""
+
+
+def add_staff_reply(
+    cursor: Cursor,
+    user_id: uuid.UUID,
+    ticket_id: uuid.UUID,
+    client_message_id: uuid.UUID,
+    content: str,
+) -> tuple[Message, Ticket, bool] | None:
+    """Post a staff message into the ticket's conversation, in the caller's transaction.
+
+    None when the caller is not staff of the ticket's store (the route answers 404). A retry with
+    the same client_message_id and text returns the stored message (created=False). The first reply
+    moves an open ticket to in_progress. Every new reply writes a 'ticket.reply' audit event.
+    Returns (message, ticket, created).
+    """
+    cursor.execute(_LOCK_REPLY_TICKET_SQL, (ticket_id, user_id))
+    locked = cursor.fetchone()
+    if locked is None:
+        return None
+    status: str = locked[0]
+    store_id: uuid.UUID = locked[1]
+    conversation_id: uuid.UUID = locked[2]
+
+    cursor.execute(_SELECT_STAFF_MESSAGE_SQL, (conversation_id, client_message_id))
+    existing = cursor.fetchone()
+    if existing is not None:
+        if existing[1] != content:
+            raise ConflictingStaffMessage()
+        return _message(existing), _ticket(cursor, ticket_id), False
+    if status == "resolved":
+        raise TicketResolved()
+
+    cursor.execute(
+        _INSERT_STAFF_MESSAGE_SQL, (conversation_id, content, client_message_id, user_id)
+    )
+    inserted = cursor.fetchone()
+    if inserted is None:
+        raise RuntimeError("INSERT ... RETURNING produced no row")
+    cursor.execute(_INSERT_AUDIT_SQL, (store_id, user_id, "ticket.reply", str(ticket_id)))
+    if status == "open":
+        cursor.execute(_UPDATE_STATUS_SQL, (IN_PROGRESS, ticket_id))
+        cursor.execute(
+            _INSERT_AUDIT_SQL,
+            (store_id, user_id, f"ticket.status:open->{IN_PROGRESS}", str(ticket_id)),
+        )
+    return _message(inserted), _ticket(cursor, ticket_id), True
+
+
+def _message(row: tuple[Any, ...]) -> Message:
+    return Message(role=row[0], content=row[1], created_at=row[2].astimezone(UTC))
+
+
+def _ticket(cursor: Cursor, ticket_id: uuid.UUID) -> Ticket:
+    cursor.execute(_SELECT_TICKET_SQL, (ticket_id,))
+    row = cursor.fetchone()
+    if row is None:
+        raise RuntimeError("ticket not visible to its own staff")
+    return Ticket(
+        id=row[0],
+        status=row[1],
+        reason=row[2],
+        summary=row[3],
+        created_at=row[4].astimezone(UTC),
+        updated_at=row[5].astimezone(UTC),
     )

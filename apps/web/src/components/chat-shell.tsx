@@ -9,6 +9,7 @@ import { FilterChips } from "@/components/filter-chips";
 import { SourceDrawer } from "@/components/source-drawer";
 import type { DrawerSource } from "@/components/source-drawer";
 import { ApiError, toApiError } from "@/lib/api";
+import type { Ticket } from "@/lib/api";
 import { createConversation, getConversation, getHealthProvider, sendTurn } from "@/lib/chat-api";
 import type { ConversationMessage, Evidence, ProductFilters, ProductHit, TurnEnvelope } from "@/lib/chat-api";
 import {
@@ -31,13 +32,28 @@ import { currentAccessToken } from "@/lib/supabase";
 /** An assistant row has an envelope when it came from this session's turn API, or plain text when restored. */
 type LogEntry =
   | { id: number; role: "user"; text: string }
+  | { id: number; role: "staff"; text: string }
   | { id: number; role: "assistant"; text: string; envelope: TurnEnvelope | null };
 
 /** Maps one stored transcript row (plain text) to a log entry. */
 function restoredEntry(row: ConversationMessage, id: number): LogEntry {
   if (row.role === "user") return { id, role: "user", text: row.content };
+  if (row.role === "staff") return { id, role: "staff", text: row.content };
   return { id, role: "assistant", text: row.content, envelope: null };
 }
+
+/** How often the open chat checks for staff replies while staff handles the conversation. */
+export const STAFF_POLL_MS = 5000;
+export const HANDOFF_NOTICE =
+  "Percakapan ini sedang ditangani staf. Asisten tidak menjawab sampai tiket selesai; balasan staf muncul di sini.";
+export const HANDOFF_ENDED_NOTICE = "Staf menandai tiket selesai. Asisten kembali menjawab pesan Anda.";
+
+const SPEAKER: Record<LogEntry["role"], string> = { user: "Anda", assistant: "Asisten", staff: "Staf TokoLangkah" };
+const BUBBLE: Record<LogEntry["role"], string> = {
+  user: "ml-auto max-w-[85%] rounded-[20px] rounded-br-md bg-primary px-4 py-3 text-on-primary",
+  assistant: "mr-auto max-w-[92%] rounded-[20px] rounded-bl-md bg-stone px-4 py-3 text-text",
+  staff: "mr-auto max-w-[92%] rounded-[20px] rounded-bl-md border border-text bg-surface px-4 py-3 text-text",
+};
 
 /** The last message that has not been answered yet. Retrying it reuses its client_message_id. */
 type Pending = { clientMessageId: string; content: string };
@@ -92,6 +108,11 @@ export function ChatShell({
   /** The user whose stored conversation has been read back (or found missing) in this page load. */
   const [restoreDoneFor, setRestoreDoneFor] = useState<string | null>(null);
   const [restoreError, setRestoreError] = useState<string | null>(null);
+  /** The unresolved ticket while staff handles this conversation; the assistant is off meanwhile. */
+  const [handoff, setHandoff] = useState<Ticket | null>(null);
+  const [handoffEnded, setHandoffEnded] = useState(false);
+  /** Transcript rows the server has that this view already shows; polling appends only newer rows. */
+  const serverCountRef = useRef(0);
 
   const userId = auth.userId;
   const sessionStatus = auth.sessionStatus;
@@ -135,6 +156,8 @@ export function ChatShell({
         const restored = history.messages.map((row) => restoredEntry(row, allocateId()));
         // A message sent while the transcript was loading stays in front; restored rows never replace it.
         setMessages((current) => (current.length === 0 ? restored : current));
+        serverCountRef.current = history.messages.length;
+        setHandoff(history.handoff);
         // The chips and the product panel come from the newest turn, unless a turn was answered already.
         const latest = history.latest;
         if (latest !== null && !turnAnsweredRef.current) {
@@ -158,6 +181,41 @@ export function ChatShell({
     };
   }, [userId, sessionStatus, onResults]);
 
+  // While staff handles the conversation, read the transcript every few seconds and append rows
+  // this view does not show yet (staff replies). When the ticket is resolved, say so and stop.
+  useEffect(() => {
+    if (handoff === null || userId === null || sessionStatus !== "signed_in") return;
+    const conversationId = readStoredConversationId(userId);
+    if (conversationId === null) return;
+    let active = true;
+    const timer = window.setInterval(async () => {
+      try {
+        const token = await currentAccessToken();
+        if (token === null || !active) return;
+        const history = await getConversation(token, conversationId);
+        if (!active) return;
+        const fresh = history.messages.slice(serverCountRef.current);
+        if (fresh.length > 0) {
+          serverCountRef.current = history.messages.length;
+          setMessages((current) => [...current, ...fresh.map((row) => restoredEntry(row, allocateId()))]);
+          const staffRows = fresh.filter((row) => row.role === "staff");
+          const last = staffRows[staffRows.length - 1];
+          if (last !== undefined) setAnnouncement(`Staf: ${last.content}`);
+        }
+        if (history.handoff === null) {
+          setHandoff(null);
+          setHandoffEnded(true);
+        }
+      } catch {
+        // A missed poll is retried on the next tick; the composer keeps working.
+      }
+    }, STAFF_POLL_MS);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [handoff, userId, sessionStatus]);
+
   function allocateId(): number {
     const id = nextIdRef.current;
     nextIdRef.current += 1;
@@ -180,7 +238,7 @@ export function ChatShell({
         storeConversationId(userId, conversationId);
       }
 
-      const envelope = await sendTurn(token, conversationId, {
+      const reply = await sendTurn(token, conversationId, {
         content,
         client_message_id: clientMessageId,
         filters,
@@ -189,6 +247,23 @@ export function ChatShell({
       setPending(null);
       setRestoreDoneFor(userId);
       turnAnsweredRef.current = true;
+      if (reply.kind === "staff") {
+        // Staff handles this conversation: the message is stored for staff, nothing else changes.
+        serverCountRef.current += 1;
+        setHandoff(reply.ticket);
+        setHandoffEnded(false);
+        const userEntryId = allocateId();
+        setMessages((current) => [...current, { id: userEntryId, role: "user", text: content }]);
+        setDraft((current) => (current.trim() === content ? "" : current));
+        setAnnouncement("Pesan terkirim ke staf.");
+        return;
+      }
+      const envelope = reply;
+      serverCountRef.current += 2;
+      if (envelope.next_action === "escalated" && envelope.ticket !== null && envelope.ticket.status !== "resolved") {
+        setHandoff(envelope.ticket);
+        setHandoffEnded(false);
+      }
       setFilters(envelope.filters);
       setFilterHint(false);
       if (envelope.products.length > 0 || envelope.filters !== null) {
@@ -316,17 +391,10 @@ export function ChatShell({
             ) : messages.length === 0 ? null : (
               <ol aria-label="Percakapan" className="flex flex-col gap-3">
                 {messages.map((entry) => (
-                  <li
-                    key={entry.id}
-                    className={
-                      entry.role === "user"
-                        ? "ml-auto max-w-[85%] rounded-[20px] rounded-br-md bg-primary px-4 py-3 text-on-primary"
-                        : "mr-auto max-w-[92%] rounded-[20px] rounded-bl-md bg-stone px-4 py-3 text-text"
-                    }
-                  >
-                    <p className="text-[12px] font-medium uppercase tracking-[0.08em]">{entry.role === "user" ? "Anda" : "Asisten"}</p>
+                  <li key={entry.id} data-role={entry.role} className={BUBBLE[entry.role]}>
+                    <p className="text-[12px] font-medium uppercase tracking-[0.08em]">{SPEAKER[entry.role]}</p>
                     <div className="mt-1">
-                      {entry.role === "user" ? (
+                      {entry.role !== "assistant" ? (
                         <p className="whitespace-pre-wrap break-words">{entry.text}</p>
                       ) : entry.envelope !== null ? (
                         <AssistantMessage
@@ -345,7 +413,19 @@ export function ChatShell({
           </div>
 
           <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-3 border-t border-border bg-background p-4">
-            <FilterChips chips={chips} onRemove={removeChip} />
+            {handoff !== null ? (
+              <p role="status" data-testid="handoff-notice" className="flex items-start gap-2 rounded-bay bg-stone px-3 py-2.5 text-sm text-text">
+                <span aria-hidden="true" className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-text" />
+                <span>
+                  {HANDOFF_NOTICE} <span className="tabular text-muted">Tiket {handoff.id.slice(0, 8)}.</span>
+                </span>
+              </p>
+            ) : handoffEnded ? (
+              <p role="status" className="rounded-bay bg-stone px-3 py-2.5 text-sm text-text">
+                {HANDOFF_ENDED_NOTICE}
+              </p>
+            ) : null}
+            {handoff === null ? <FilterChips chips={chips} onRemove={removeChip} /> : null}
             {filterHint ? (
               <p role="status" className="text-sm text-muted">
                 {FILTER_UPDATED_HINT}
@@ -354,7 +434,7 @@ export function ChatShell({
 
             <div className="flex flex-wrap items-baseline justify-between gap-x-3">
               <label htmlFor={inputId} className="block font-medium text-text">
-                Tulis pesan
+                {handoff !== null ? "Tulis pesan untuk staf" : "Tulis pesan"}
               </label>
               <p id={hintId} className="text-[13px] text-muted">
                 Enter untuk kirim, Shift+Enter untuk baris baru.
@@ -402,6 +482,7 @@ export function ChatShell({
             </div>
           </form>
 
+          {handoff === null ? (
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border p-4">
             <button
               type="button"
@@ -417,6 +498,7 @@ export function ChatShell({
             </button>
             <p className="min-w-0 flex-1 basis-48 text-[13px] text-muted">Permintaan ini dicatat sebagai tiket dan dapat dilihat staf.</p>
           </div>
+          ) : null}
         </div>
       ) : null}
 

@@ -39,6 +39,12 @@ _SELECT_TICKET_BY_KEY_SQL = (
     "SELECT id, status, reason, summary, created_at, updated_at FROM tickets"
     " WHERE store_id = %s AND customer_id = %s AND conversation_id = %s AND idempotency_key = %s"
 )
+# RLS limits this to tickets the caller may see (own as customer, store's as staff).
+_ACTIVE_TICKET_SQL = (
+    "SELECT id, status, reason, summary, created_at, updated_at FROM tickets"
+    " WHERE conversation_id = %s AND status <> 'resolved'"
+    " ORDER BY created_at DESC, id DESC LIMIT 1"
+)
 _OWN_TICKETS_SQL = (
     "SELECT id, status, reason, summary, created_at, updated_at FROM tickets"
     " WHERE customer_id = %s ORDER BY created_at DESC, id DESC LIMIT %s"
@@ -127,3 +133,10 @@ def insert_ticket_once(
 def own_tickets(cursor: Cursor, user_id: uuid.UUID) -> list[Ticket]:
     cursor.execute(_OWN_TICKETS_SQL, (user_id, TICKET_LIST_LIMIT))
     return [_row_to_ticket(row) for row in cursor.fetchall()]
+
+
+def active_ticket(cursor: Cursor, conversation_id: uuid.UUID) -> Ticket | None:
+    """The newest unresolved ticket of the conversation: while one exists, staff handles it."""
+    cursor.execute(_ACTIVE_TICKET_SQL, (conversation_id,))
+    row = cursor.fetchone()
+    return None if row is None else _row_to_ticket(row)

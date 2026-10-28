@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
-import type { RefObject } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import type { FormEvent, KeyboardEvent, RefObject } from "react";
 import { useAuth } from "@/components/auth-provider";
 import {
   ApiErrorNotice,
@@ -10,15 +10,17 @@ import {
   SignedOutNotice,
 } from "@/components/account-states";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { SiteFrame } from "@/components/site-frame";
+import { StaffFrame } from "@/components/staff-frame";
 import {
   ApiError,
   getStaffTicket,
   listStaffTickets,
+  postStaffReply,
   toApiError,
   updateStaffTicketStatus,
 } from "@/lib/api";
 import type { StaffTicketDetail, StaffTicketSummary, TicketStatus } from "@/lib/api";
+import { MAX_MESSAGE_LENGTH, newClientMessageId } from "@/lib/chat";
 import type { AppMode } from "@/lib/config";
 import { formatDateTime } from "@/lib/format";
 import { auditActionLabel, roleLabel, ticketStatusLabel } from "@/lib/labels";
@@ -39,9 +41,16 @@ const STATUS_ACTION_LABELS: Record<TicketStatus, string> = {
   resolved: "Tandai Selesai",
 };
 
+/** The open ticket is re-read this often so customer messages appear without a reload. */
+export const DETAIL_POLL_MS = 5000;
+const LIST_POLL_MS = 15000;
+
 export const STAFF_ONLY_MESSAGE = "Halaman ini khusus staf.";
 export const STATUS_UPDATE_FAILED_MESSAGE = "Status belum berubah. Coba lagi.";
 export const TICKET_NOT_FOUND_MESSAGE = "Tiket tidak ditemukan.";
+export const REPLY_FAILED_MESSAGE = "Balasan belum terkirim. Teks Anda masih ada; coba kirim lagi.";
+export const REPLY_RESOLVED_MESSAGE = "Tiket ini sudah selesai, jadi asisten yang menjawab pelanggan. Buka kembali tiket untuk membalas.";
+export const WAITING_LABEL = "Menunggu balasan";
 
 type ListState =
   | { status: "loading" }
@@ -83,20 +92,25 @@ function statusErrorMessage(error: ApiError): string {
   return STATUS_UPDATE_FAILED_MESSAGE;
 }
 
-/** Staff gate. Only /me with at least one staff store unlocks the dashboard. */
+/** A customer is waiting when they spoke last on a ticket that is not resolved. */
+function isWaiting(ticket: StaffTicketSummary): boolean {
+  return ticket.status !== "resolved" && ticket.last_message_role === "user";
+}
+
+/** Staff gate. Only /me with at least one staff store unlocks the console. */
 export function StaffView({ mode }: { mode: AppMode }) {
   return (
-    <SiteFrame mode={mode} current="staf">
-      <section aria-labelledby="staff-heading" className="flex flex-col gap-6">
-        <div>
-          <h1 id="staff-heading" className="font-display text-[clamp(40px,6vw,72px)] font-bold uppercase leading-[0.86] text-text">
-            Staf
+    <StaffFrame mode={mode}>
+      <section aria-labelledby="staff-heading" className="flex flex-col gap-5">
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-1">
+          <h1 id="staff-heading" className="font-display text-[clamp(36px,4.4vw,56px)] font-bold uppercase leading-[0.88] text-text">
+            Tiket <span className="text-quiet">pelanggan</span>
           </h1>
-          <p className="mt-2 text-muted">Tiket eskalasi dari pelanggan. Data demo, fiktif.</p>
+          <p className="text-[15px] text-muted">Balas pelanggan dari sini. Selama tiket belum selesai, asisten tidak menjawab.</p>
         </div>
         <StaffGate />
       </section>
-    </SiteFrame>
+    </StaffFrame>
   );
 }
 
@@ -125,9 +139,9 @@ function StaffGate() {
 }
 
 /**
- * Ticket list with status filters, a detail panel with transcript and audit,
- * and status buttons. Status changes wait for the server: every status button is
- * disabled while a PATCH is in flight. Setting "resolved" needs confirmation.
+ * Ticket queue with status filters, the selected ticket's conversation with a reply box, and its
+ * status actions and audit trail. Status changes and replies wait for the server; resolving needs
+ * confirmation. The open ticket and the queue refresh on a timer so new customer messages appear.
  */
 export function StaffDashboard() {
   const [filter, setFilter] = useState<Filter>("all");
@@ -147,8 +161,15 @@ export function StaffDashboard() {
     void loadList(filter).then((next) => {
       if (active) setList(next);
     });
+    const timer = window.setInterval(() => {
+      // Background refresh keeps the shown list on a failed poll.
+      void loadList(filter).then((next) => {
+        if (active && next.status === "ready") setList(next);
+      });
+    }, LIST_POLL_MS);
     return () => {
       active = false;
+      window.clearInterval(timer);
     };
   }, [filter, listAttempt]);
 
@@ -158,10 +179,25 @@ export function StaffDashboard() {
     void loadDetail(selectedId).then((next) => {
       if (active) setDetail(next);
     });
+    const timer = window.setInterval(() => {
+      void loadDetail(selectedId).then((next) => {
+        if (active && next.status === "ready") setDetail(next);
+      });
+    }, DETAIL_POLL_MS);
     return () => {
       active = false;
+      window.clearInterval(timer);
     };
   }, [selectedId]);
+
+  const refreshAfterChange = useCallback(
+    async (ticketId: string) => {
+      const [nextDetail, nextList] = await Promise.all([loadDetail(ticketId), loadList(filter)]);
+      setDetail(nextDetail);
+      if (nextList.status === "ready") setList(nextList);
+    },
+    [filter],
+  );
 
   function changeFilter(next: Filter) {
     if (next === filter) return;
@@ -191,9 +227,7 @@ export function StaffDashboard() {
       const token = await currentAccessToken();
       if (token === null) throw new ApiError("unauthorized", "No session.", 401);
       await updateStaffTicketStatus(ticketId, target, token);
-      const [nextDetail, nextList] = await Promise.all([loadDetail(ticketId), loadList(filter)]);
-      setDetail(nextDetail);
-      setList(nextList);
+      await refreshAfterChange(ticketId);
       setAnnouncement(`Status tiket diubah menjadi ${ticketStatusLabel(target)}.`);
       detailHeadingRef.current?.focus();
     } catch (error: unknown) {
@@ -212,12 +246,22 @@ export function StaffDashboard() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-start">
-      <section aria-labelledby={listHeadingId} className="flex min-w-0 flex-col gap-4">
-        <h2 id={listHeadingId} className="font-display text-[26px] font-medium leading-tight text-text">
-          Daftar tiket
-        </h2>
-        <div role="group" aria-label="Filter status" className="flex w-fit max-w-full flex-wrap gap-1 rounded-[26px] bg-stone p-1">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[21rem_minmax(0,1fr)] lg:items-start">
+      <section
+        aria-labelledby={listHeadingId}
+        className="flex min-w-0 flex-col gap-3 rounded-card border border-border bg-surface p-3 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-8rem)]"
+      >
+        <div className="flex items-center justify-between gap-2 px-1 pt-1">
+          <h2 id={listHeadingId} className="font-display text-[22px] font-medium leading-tight text-text">
+            Antrean tiket
+          </h2>
+          {list.status === "ready" ? (
+            <p className="tabular text-sm text-muted">
+              {list.items.filter(isWaiting).length} menunggu
+            </p>
+          ) : null}
+        </div>
+        <div role="group" aria-label="Filter status" className="flex w-full flex-wrap gap-1 rounded-[26px] bg-stone p-1">
           {FILTERS.map((option) => {
             const active = filter === option.value;
             return (
@@ -228,8 +272,8 @@ export function StaffDashboard() {
                 onClick={() => changeFilter(option.value)}
                 className={
                   active
-                    ? "min-h-11 rounded-pill bg-primary px-4 text-[15px] font-medium text-on-primary"
-                    : "min-h-11 rounded-pill px-4 text-[15px] text-text transition-colors duration-200 hover:bg-surface"
+                    ? "min-h-11 flex-1 rounded-pill bg-primary px-3 text-[15px] font-medium text-on-primary"
+                    : "min-h-11 flex-1 rounded-pill px-3 text-[15px] text-text transition-colors duration-200 hover:bg-surface"
                 }
               >
                 {option.label}
@@ -237,7 +281,9 @@ export function StaffDashboard() {
             );
           })}
         </div>
-        <TicketList list={list} selectedId={selectedId} onSelect={selectTicket} onRetry={retryList} />
+        <div className="min-h-0 overflow-y-auto [scrollbar-width:thin]">
+          <TicketList list={list} selectedId={selectedId} onSelect={selectTicket} onRetry={retryList} />
+        </div>
       </section>
 
       <section aria-label="Detail tiket" className="flex min-w-0 flex-col gap-4">
@@ -248,6 +294,7 @@ export function StaffDashboard() {
           announcement={announcement}
           headingRef={detailHeadingRef}
           onRequestStatus={requestStatus}
+          onReplied={(ticketId) => refreshAfterChange(ticketId)}
           onRetry={() => {
             if (selectedId !== null) selectTicket(selectedId);
           }}
@@ -257,7 +304,7 @@ export function StaffDashboard() {
       <ConfirmDialog
         open={confirmTarget === "resolved"}
         title="Tandai tiket sebagai selesai?"
-        description="Tiket akan ditandai Selesai dan perubahan ini tercatat di riwayat audit atas nama Anda."
+        description="Tiket akan ditandai Selesai dan perubahan ini tercatat di riwayat audit atas nama Anda. Setelah itu asisten kembali menjawab pelanggan."
         confirmLabel="Ya, tandai selesai"
         onCancel={() => setConfirmTarget(null)}
         onConfirm={() => {
@@ -281,18 +328,19 @@ function TicketList({
   onRetry: () => void;
 }) {
   if (list.status === "loading") {
-    return <p role="status" className="text-muted">Memuat tiket…</p>;
+    return <p role="status" className="px-1 text-muted">Memuat tiket…</p>;
   }
   if (list.status === "error") {
     return <ApiErrorNotice error={list.error} onRetry={onRetry} />;
   }
   if (list.items.length === 0) {
-    return <p className="rounded-card border border-border bg-surface p-5 text-text">Belum ada tiket untuk filter ini.</p>;
+    return <p className="px-1 py-3 text-text">Belum ada tiket untuk filter ini.</p>;
   }
   return (
-    <ul aria-label="Tiket" className="flex flex-col gap-2">
+    <ul aria-label="Tiket" className="flex flex-col gap-1.5">
       {list.items.map((ticket) => {
         const selected = ticket.id === selectedId;
+        const waiting = isWaiting(ticket);
         return (
           <li key={ticket.id} className="min-w-0">
             <button
@@ -301,16 +349,24 @@ function TicketList({
               aria-current={selected ? "true" : undefined}
               className={
                 selected
-                  ? "flex min-h-11 w-full min-w-0 flex-col gap-1 rounded-bay border border-text bg-surface p-4 text-left shadow-[0_10px_30px_-22px_rgba(21,22,23,0.5)]"
-                  : "flex min-h-11 w-full min-w-0 flex-col gap-1 rounded-bay border border-border bg-surface p-4 text-left transition-colors duration-200 hover:border-quiet"
+                  ? "flex min-h-11 w-full min-w-0 flex-col gap-1 rounded-bay bg-primary p-3.5 text-left text-on-primary"
+                  : "flex min-h-11 w-full min-w-0 flex-col gap-1 rounded-bay p-3.5 text-left text-text transition-colors duration-200 hover:bg-stone"
               }
             >
-              <span className="font-semibold text-text break-words">{ticket.reason}</span>
-              <span className="text-sm text-text">
-                {ticketStatusLabel(ticket.status)}
-                {ticket.customer_alias ? ` · ${ticket.customer_alias}` : ""}
+              <span className="font-semibold break-words">{ticket.reason}</span>
+              <span className={`flex flex-wrap items-center gap-x-2 text-sm ${selected ? "text-ink-muted" : "text-text"}`}>
+                <span>{ticketStatusLabel(ticket.status)}</span>
+                {ticket.customer_alias ? <span>· {ticket.customer_alias}</span> : null}
               </span>
-              <span className="text-sm text-muted">{formatDateTime(ticket.created_at)}</span>
+              <span className={`flex flex-wrap items-center gap-x-3 text-sm ${selected ? "text-ink-muted" : "text-muted"}`}>
+                <span className="tabular">{formatDateTime(ticket.last_message_at ?? ticket.created_at)}</span>
+                {waiting ? (
+                  <span className={`inline-flex items-center gap-1.5 font-medium ${selected ? "text-on-primary" : "text-accent-ink"}`}>
+                    <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />
+                    {WAITING_LABEL}
+                  </span>
+                ) : null}
+              </span>
             </button>
           </li>
         );
@@ -319,6 +375,127 @@ function TicketList({
   );
 }
 
+type PendingReply = { clientMessageId: string; content: string };
+
+function ReplyBox({ ticket, onReplied }: { ticket: StaffTicketDetail; onReplied: (ticketId: string) => Promise<void> }) {
+  const inputId = useId();
+  const hintId = useId();
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pendingReply, setPendingReply] = useState<PendingReply | null>(null);
+  const [announcement, setAnnouncement] = useState("");
+  const resolved = ticket.status === "resolved";
+
+  async function send(content: string, clientMessageId: string) {
+    setSending(true);
+    setError(null);
+    setPendingReply({ clientMessageId, content });
+    try {
+      const token = await currentAccessToken();
+      if (token === null) throw new ApiError("unauthorized", "No session.", 401);
+      await postStaffReply(ticket.id, { content, client_message_id: clientMessageId }, token);
+      setPendingReply(null);
+      setDraft((current) => (current.trim() === content ? "" : current));
+      setAnnouncement("Balasan terkirim ke pelanggan.");
+      await onReplied(ticket.id);
+    } catch (caught: unknown) {
+      const apiError = toApiError(caught);
+      if (apiError.status === 409) {
+        setError(REPLY_RESOLVED_MESSAGE);
+        await onReplied(ticket.id);
+      } else if (apiError.kind === "unauthorized") {
+        setError(SESSION_EXPIRED_MESSAGE);
+      } else {
+        setError(REPLY_FAILED_MESSAGE);
+      }
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function submit() {
+    if (sending || resolved) return;
+    const content = draft.trim();
+    if (content === "") {
+      setError("Tulis balasan terlebih dahulu.");
+      return;
+    }
+    // Sending the same text again after a failure reuses its id, so the server never posts it twice.
+    const clientMessageId =
+      pendingReply !== null && pendingReply.content === content ? pendingReply.clientMessageId : newClientMessageId();
+    void send(content, clientMessageId);
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    submit();
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      submit();
+    }
+  }
+
+  if (resolved) {
+    return (
+      <p className="border-t border-border bg-background px-4 py-3 text-sm text-text">
+        Tiket selesai: asisten kembali menjawab pelanggan. Tandai Ditangani untuk membalas lagi.
+      </p>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2 border-t border-border bg-background p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+        <label htmlFor={inputId} className="font-medium text-text">
+          Balas pelanggan
+        </label>
+        <p id={hintId} className="text-[13px] text-muted">
+          Enter untuk kirim, Shift+Enter untuk baris baru.
+        </p>
+      </div>
+      <div className="flex items-end gap-2">
+        <textarea
+          id={inputId}
+          rows={2}
+          maxLength={MAX_MESSAGE_LENGTH}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={handleKeyDown}
+          aria-describedby={hintId}
+          aria-invalid={error !== null}
+          className="min-h-11 w-full min-w-0 flex-1 resize-none rounded-bay border border-quiet bg-surface p-3 text-text transition-colors duration-200 hover:border-text focus:border-text"
+        />
+        <button
+          type="submit"
+          disabled={sending}
+          className="min-h-11 rounded-pill bg-primary px-6 font-medium text-on-primary transition-opacity duration-200 hover:opacity-85 disabled:opacity-60"
+        >
+          {sending ? "Mengirim…" : "Kirim balasan"}
+        </button>
+      </div>
+      {error !== null ? (
+        <p role="alert" className="flex items-start gap-2 text-sm text-accent-ink">
+          <span aria-hidden="true" className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+          {error}
+        </p>
+      ) : null}
+      <p aria-live="polite" className="sr-only">
+        {announcement}
+      </p>
+    </form>
+  );
+}
+
+const BUBBLE: Record<string, string> = {
+  user: "mr-auto max-w-[85%] rounded-[20px] rounded-bl-md bg-stone px-4 py-3 text-text",
+  assistant: "mr-auto max-w-[85%] rounded-[20px] rounded-bl-md border border-border bg-surface px-4 py-3 text-text",
+  staff: "ml-auto max-w-[85%] rounded-[20px] rounded-br-md bg-primary px-4 py-3 text-on-primary",
+};
+
 function TicketDetail({
   detail,
   pending,
@@ -326,6 +503,7 @@ function TicketDetail({
   announcement,
   headingRef,
   onRequestStatus,
+  onReplied,
   onRetry,
 }: {
   detail: DetailState;
@@ -334,10 +512,21 @@ function TicketDetail({
   announcement: string;
   headingRef: RefObject<HTMLHeadingElement | null>;
   onRequestStatus: (target: TicketStatus) => void;
+  onReplied: (ticketId: string) => Promise<void>;
   onRetry: () => void;
 }) {
+  const logEndRef = useRef<HTMLDivElement>(null);
+  const transcriptLength = detail.status === "ready" ? detail.ticket.transcript.length : 0;
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView?.({ block: "nearest" });
+  }, [transcriptLength]);
+
   if (detail.status === "idle") {
-    return <p className="rounded-card border border-border bg-surface p-5 text-text">Pilih tiket untuk melihat detail.</p>;
+    return (
+      <p className="rounded-card border border-border bg-surface p-6 font-display text-[22px] leading-snug text-muted">
+        Pilih tiket di antrean untuk membaca percakapan dan membalas.
+      </p>
+    );
   }
   if (detail.status === "loading") {
     return <p role="status" className="text-muted">Memuat detail tiket…</p>;
@@ -351,102 +540,119 @@ function TicketDetail({
 
   const ticket = detail.ticket;
   return (
-    <article aria-labelledby="ticket-detail-heading" className="flex min-w-0 flex-col gap-5 rounded-card border border-border bg-surface p-5 md:p-6">
-      <div>
-        <h2 id="ticket-detail-heading" ref={headingRef} tabIndex={-1} className="font-display text-[26px] font-medium leading-tight text-text outline-none">
-          {ticket.reason}
-        </h2>
-        <p className="mt-1 break-all text-sm text-muted">ID tiket: {ticket.id}</p>
-      </div>
-
-      <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div>
-          <dt className="text-sm text-muted">Status</dt>
-          <dd className="mt-1 font-semibold text-text">{ticketStatusLabel(ticket.status)}</dd>
-        </div>
-        <div>
-          <dt className="text-sm text-muted">Pelanggan</dt>
-          <dd className="mt-1 text-text">{ticket.customer_alias ?? "—"}</dd>
-        </div>
-        <div>
-          <dt className="text-sm text-muted">Dibuat</dt>
-          <dd className="mt-1 text-text">{formatDateTime(ticket.created_at)}</dd>
-        </div>
-        <div>
-          <dt className="text-sm text-muted">Diperbarui</dt>
-          <dd className="mt-1 text-text">{formatDateTime(ticket.updated_at)}</dd>
-        </div>
-        <div className="sm:col-span-2">
-          <dt className="text-sm text-muted">Ringkasan</dt>
-          <dd className="mt-1 whitespace-pre-wrap break-words text-text">{ticket.summary}</dd>
-        </div>
-      </dl>
-
-      <div className="flex flex-col gap-2">
-        <p className="text-[12px] font-medium uppercase tracking-[0.08em] text-muted">Ubah status</p>
-        <div role="group" aria-label="Ubah status tiket" className="flex flex-wrap gap-2">
-          {(Object.keys(STATUS_ACTION_LABELS) as TicketStatus[])
-            .filter((status) => status !== ticket.status)
-            .map((status) => (
-              <button
-                key={status}
-                type="button"
-                disabled={pending}
-                onClick={() => onRequestStatus(status)}
-                className="min-h-11 rounded-pill border border-text bg-surface px-5 text-text transition-colors duration-200 hover:bg-primary hover:text-on-primary disabled:opacity-60"
-              >
-                {STATUS_ACTION_LABELS[status]}
-              </button>
-            ))}
-        </div>
-        {pending ? <p role="status" className="text-sm text-muted">Menyimpan perubahan…</p> : null}
-        {actionError ? (
-          <p role="alert" className="text-accent-ink">
-            {actionError}
+    <article aria-labelledby="ticket-detail-heading" className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_19rem] xl:items-start">
+      <div className="flex min-w-0 flex-col overflow-hidden rounded-card border border-border bg-surface">
+        <div className="border-b border-border px-5 py-4">
+          <h2 id="ticket-detail-heading" ref={headingRef} tabIndex={-1} className="font-display text-[26px] font-medium leading-tight text-text outline-none">
+            {ticket.reason}
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            {ticket.customer_alias ?? "Pelanggan"} · <span className="tabular">Tiket {ticket.id.slice(0, 8)}</span>
           </p>
-        ) : null}
-        <p aria-live="polite" className="sr-only">
-          {announcement}
-        </p>
+        </div>
+        <section aria-labelledby="transcript-heading" className="flex min-h-[20rem] flex-col">
+          <h3 id="transcript-heading" className="sr-only">
+            Percakapan
+          </h3>
+          <div className="max-h-[60vh] min-h-[16rem] flex-1 overflow-y-auto px-5 py-4 [scrollbar-width:thin]">
+            {ticket.transcript.length === 0 ? (
+              <p className="text-muted">Belum ada percakapan.</p>
+            ) : (
+              <ol aria-label="Percakapan" className="flex flex-col gap-3">
+                {ticket.transcript.map((message, index) => (
+                  <li key={`${message.created_at}-${index}`} data-role={message.role} className={BUBBLE[message.role] ?? BUBBLE.assistant}>
+                    <p className="text-[12px] font-medium uppercase tracking-[0.08em]">
+                      {roleLabel(message.role)}{" "}
+                      <span className="font-normal normal-case tracking-normal opacity-80">{formatDateTime(message.created_at)}</span>
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap break-words">{message.content}</p>
+                  </li>
+                ))}
+              </ol>
+            )}
+            <div ref={logEndRef} />
+          </div>
+          <ReplyBox key={ticket.id} ticket={ticket} onReplied={onReplied} />
+        </section>
       </div>
 
-      <section aria-labelledby="transcript-heading" className="flex flex-col gap-3">
-        <h3 id="transcript-heading" className="font-display text-[20px] font-medium text-text">
-          Percakapan
-        </h3>
-        {ticket.transcript.length === 0 ? (
-          <p className="text-muted">Belum ada percakapan.</p>
-        ) : (
-          <ol aria-label="Percakapan" className="flex flex-col gap-2">
-            {ticket.transcript.map((message, index) => (
-              <li key={`${message.created_at}-${index}`} className="rounded-bay bg-stone px-4 py-3">
-                <p className="text-sm font-medium text-text">
-                  {roleLabel(message.role)} <span className="font-normal text-muted">{formatDateTime(message.created_at)}</span>
-                </p>
-                <p className="mt-1 whitespace-pre-wrap break-words text-text">{message.content}</p>
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
+      <aside aria-label="Info tiket" className="flex min-w-0 flex-col gap-5 rounded-card border border-border bg-surface p-5">
+        <dl className="grid grid-cols-2 gap-3 xl:grid-cols-1">
+          <div>
+            <dt className="text-sm text-muted">Status</dt>
+            <dd className="mt-1 font-semibold text-text">{ticketStatusLabel(ticket.status)}</dd>
+          </div>
+          <div>
+            <dt className="text-sm text-muted">Pelanggan</dt>
+            <dd className="mt-1 text-text">{ticket.customer_alias ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-sm text-muted">Dibuat</dt>
+            <dd className="mt-1 text-text">{formatDateTime(ticket.created_at)}</dd>
+          </div>
+          <div>
+            <dt className="text-sm text-muted">Diperbarui</dt>
+            <dd className="mt-1 text-text">{formatDateTime(ticket.updated_at)}</dd>
+          </div>
+          <div className="col-span-2 xl:col-span-1">
+            <dt className="text-sm text-muted">Ringkasan</dt>
+            <dd className="mt-1 whitespace-pre-wrap break-words text-text">{ticket.summary}</dd>
+          </div>
+          <div className="col-span-2 xl:col-span-1">
+            <dt className="text-sm text-muted">ID tiket</dt>
+            <dd className="mt-1 break-all text-sm text-text">{ticket.id}</dd>
+          </div>
+        </dl>
 
-      <section aria-labelledby="audit-heading" className="flex flex-col gap-3">
-        <h3 id="audit-heading" className="font-display text-[20px] font-medium text-text">
-          Riwayat audit
-        </h3>
-        {ticket.audit.length === 0 ? (
-          <p className="text-muted">Belum ada catatan audit.</p>
-        ) : (
-          <ol aria-label="Riwayat audit" className="flex flex-col border-l border-rule pl-4">
-            {ticket.audit.map((event, index) => (
-              <li key={`${event.created_at}-${index}`} className="relative py-1.5 text-sm text-text before:absolute before:-left-[1.3rem] before:top-3 before:h-2 before:w-2 before:rounded-full before:bg-text">
-                <span className="break-words">{auditActionLabel(event.action)}</span>{" "}
-                <span className="text-muted">{formatDateTime(event.created_at)}</span>
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
+        <div className="flex flex-col gap-2">
+          <p className="text-[12px] font-medium uppercase tracking-[0.08em] text-muted">Ubah status</p>
+          <div role="group" aria-label="Ubah status tiket" className="flex flex-wrap gap-2">
+            {(Object.keys(STATUS_ACTION_LABELS) as TicketStatus[])
+              .filter((status) => status !== ticket.status)
+              .map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  disabled={pending}
+                  onClick={() => onRequestStatus(status)}
+                  className="min-h-11 rounded-pill border border-text bg-surface px-4 text-[15px] text-text transition-colors duration-200 hover:bg-primary hover:text-on-primary disabled:opacity-60"
+                >
+                  {STATUS_ACTION_LABELS[status]}
+                </button>
+              ))}
+          </div>
+          {pending ? <p role="status" className="text-sm text-muted">Menyimpan perubahan…</p> : null}
+          {actionError ? (
+            <p role="alert" className="text-accent-ink">
+              {actionError}
+            </p>
+          ) : null}
+          <p aria-live="polite" className="sr-only">
+            {announcement}
+          </p>
+        </div>
+
+        <section aria-labelledby="audit-heading" className="flex flex-col gap-3">
+          <h3 id="audit-heading" className="font-display text-[20px] font-medium text-text">
+            Riwayat audit
+          </h3>
+          {ticket.audit.length === 0 ? (
+            <p className="text-muted">Belum ada catatan audit.</p>
+          ) : (
+            <ol aria-label="Riwayat audit" className="flex flex-col border-l border-rule pl-4">
+              {ticket.audit.map((event, index) => (
+                <li
+                  key={`${event.created_at}-${index}`}
+                  className="relative py-1.5 text-sm text-text before:absolute before:-left-[1.3rem] before:top-3 before:h-2 before:w-2 before:rounded-full before:bg-text"
+                >
+                  <span className="break-words">{auditActionLabel(event.action)}</span>{" "}
+                  <span className="text-muted">{formatDateTime(event.created_at)}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+      </aside>
     </article>
   );
 }

@@ -46,6 +46,8 @@ class Conversation(BaseModel):
     created_at: datetime
     messages: list[Message]
     latest: LatestTurn | None = None
+    # The unresolved ticket while staff handles this conversation (the assistant is off), else None.
+    handoff: Ticket | None = None
 
 
 class EscalationRequest(BaseModel):
@@ -106,6 +108,8 @@ class TurnRequest(BaseModel):
 class TurnEnvelope(BaseModel):
     """The assistant's reply. Stored verbatim as messages.payload for idempotent retries."""
 
+    # Envelopes stored before 0011 carry no kind; they are assistant replies.
+    kind: Literal["assistant"] = "assistant"
     message_id: uuid.UUID
     answer: str
     next_action: Literal["answer", "clarify", "abstain", "offer_escalation", "escalated"]
@@ -115,3 +119,13 @@ class TurnEnvelope(BaseModel):
     order: Order | None
     ticket: Ticket | None
     provider: Literal["rules", "openai"]
+
+
+class StaffRelay(BaseModel):
+    """Reply to a customer message sent while staff handles the conversation.
+
+    The assistant did not run: the message is in the transcript for staff to answer.
+    """
+
+    kind: Literal["staff"] = "staff"
+    ticket: Ticket

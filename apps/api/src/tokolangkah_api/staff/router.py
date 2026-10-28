@@ -1,5 +1,7 @@
 """Routes: GET /me, and the staff ticket endpoints under /staff/tickets.
 
+Staff can list, read, change status and reply in the ticket's conversation.
+
 Staff status comes only from store_members. Customer metadata never grants it. A caller who is not
 staff of the ticket's store gets the same 404 as for a ticket that does not exist.
 """
@@ -9,15 +11,19 @@ from __future__ import annotations
 import uuid
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Response
+from fastapi.responses import JSONResponse
 
 from tokolangkah_api import db_session
 from tokolangkah_api.auth import AuthenticatedUser, current_user
 from tokolangkah_api.conversations.models import Ticket
+from tokolangkah_api.errors import ErrorEnvelope, error_response
 from tokolangkah_api.settings import Settings
 from tokolangkah_api.staff import repository
 from tokolangkah_api.staff.models import (
     MeResponse,
+    StaffReply,
+    StaffReplyResult,
     StaffTicketDetail,
     StaffTicketList,
     StatusChange,
@@ -88,6 +94,43 @@ def get_staff_ticket(
     if detail is None:
         raise HTTPException(status_code=404)
     return detail
+
+
+@router.post(
+    "/staff/tickets/{ticket_id}/messages",
+    response_model=StaffReplyResult,
+    status_code=201,
+    responses={409: {"model": ErrorEnvelope}},
+)
+def post_staff_reply(
+    request: Request,
+    response: Response,
+    user: Annotated[AuthenticatedUser, Depends(current_user)],
+    body: StaffReply,
+    ticket_id: Annotated[str, Path(max_length=64)],
+) -> StaffReplyResult | JSONResponse:
+    """Staff answers the customer in the ticket's conversation. 404 for anyone but store staff."""
+    tid = _parse_ticket_id(ticket_id)
+    settings: Settings = request.app.state.settings
+    try:
+        with (
+            db_session.connect(settings) as conn,
+            db_session.user_transaction(conn, user.user_id) as cursor,
+        ):
+            result = repository.add_staff_reply(
+                cursor, user.user_id, tid, body.client_message_id, body.content
+            )
+    except repository.TicketResolved:
+        return error_response(
+            request, 409, "ticket_resolved", "The ticket is resolved; the assistant has the chat."
+        )
+    except repository.ConflictingStaffMessage:
+        raise HTTPException(status_code=409) from None
+    if result is None:
+        raise HTTPException(status_code=404)
+    message, ticket, created = result
+    response.status_code = 201 if created else 200
+    return StaffReplyResult(message=message, ticket=ticket)
 
 
 @router.patch("/staff/tickets/{ticket_id}", response_model=Ticket)

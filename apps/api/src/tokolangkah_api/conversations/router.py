@@ -24,6 +24,7 @@ from tokolangkah_api.conversations.models import (
     Conversation,
     ConversationCreated,
     EscalationRequest,
+    StaffRelay,
     TicketEnvelope,
     TicketList,
     TurnEnvelope,
@@ -72,6 +73,7 @@ def get_conversation(
             if header is None:
                 raise HTTPException(status_code=404)
             messages = repository.conversation_messages(cursor, conv_uuid)
+            handoff = repository.active_ticket(cursor, conv_uuid)
         # Outside the user transaction: the API role runs the SECURITY DEFINER lookup (0010).
         latest = turns.latest_turn(conn, user.user_id, conv_uuid)
     created_at, _store_id = header
@@ -80,6 +82,7 @@ def get_conversation(
         created_at=created_at.astimezone(UTC),
         messages=messages,
         latest=latest,
+        handoff=handoff,
     )
 
 
@@ -150,25 +153,41 @@ def _planner(request: Request) -> Planner:
 
 @router.post(
     "/conversations/{conversation_id}/messages",
-    response_model=TurnEnvelope,
+    response_model=TurnEnvelope | StaffRelay,
 )
 def post_message(
     request: Request,
     user: Annotated[AuthenticatedUser, Depends(current_user)],
     body: TurnRequest,
     conversation_id: Annotated[str, Path(max_length=64)],
-) -> TurnEnvelope:
-    """One customer turn. Idempotent per (conversation, client_message_id)."""
+) -> TurnEnvelope | StaffRelay:
+    """One customer turn. Idempotent per (conversation, client_message_id).
+
+    While the conversation has an unresolved ticket, staff handles it: the message is stored for
+    staff and the assistant does not run (no planner, no model call, no assistant row).
+    """
     conv_uuid = _parse_id(conversation_id)
     settings: Settings = request.app.state.settings
     with db_session.connect(settings) as conn:
         with db_session.user_transaction(conn, user.user_id) as cursor:
             if repository.conversation_header(cursor, conv_uuid) is None:
                 raise HTTPException(status_code=404)
+            handoff = repository.active_ticket(cursor, conv_uuid)
         stored = turns.stored_envelope(conn, user.user_id, conv_uuid, body.client_message_id)
         if stored is not None:
-            # A retry: no new message, no rate-limit charge, no second ticket.
+            # A retry of an answered turn (also the turn that opened the ticket): no new message,
+            # no rate-limit charge, no second ticket.
             return TurnEnvelope.model_validate(stored)
+        if handoff is not None:
+            turns.enforce_rate_limit(conn, settings, user.user_id)
+            try:
+                with db_session.user_transaction(conn, user.user_id) as cursor:
+                    turns.insert_user_message(
+                        cursor, conv_uuid, body.client_message_id, body.content
+                    )
+            except turns.ConflictingClientMessage:
+                raise HTTPException(status_code=409) from None
+            return StaffRelay(ticket=handoff)
         planner = _planner(request)
         turns.enforce_rate_limit(conn, settings, user.user_id)
         try:

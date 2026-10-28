@@ -7,7 +7,7 @@ Status 2026-10-28: **locally complete, not deployed.** Default assistant: a dete
 - Catalogue with photos, IDR prices and in-stock sizes (no stock counts, no ratings).
 - Chat (sign-in required): extractive policy answers with a source drawer (title, version, section, excerpt); "di bawah 500 ribu" → `< 500000`, "maksimal 500 ribu" → `<= 500000`; size must be in stock; removable filter chips; clarification for ambiguous budgets; no silent broadening; idempotent retries; 429/503 recovery that keeps typed text.
 - Orders: customers see only their own orders; another customer's order number is indistinguishable from a missing one.
-- Handoff: one durable ticket per request (concurrent retries → one row); staff (server-side membership only) review transcript, change status, and every change is audited.
+- Handoff: one durable ticket per request (concurrent retries → one row). While the conversation has an unresolved ticket, the assistant does not run: the customer's messages go to staff, staff reply from the console at `/staf` (`POST /staff/tickets/{id}/messages`, idempotent), and the chat shows the replies (polled every 5 s). Resolving the ticket hands the chat back to the assistant. Staff access is server-side membership only; status changes and replies are audited.
 - Live on Supabase cloud: real sign-in, ES256/JWKS verification, RLS (`scripts/live_smoke.py` 16/16, `e2e:live` 5/5).
 
 ## Architecture

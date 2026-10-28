@@ -26,8 +26,9 @@ export function ticketStatusLabel(status: TicketStatus): string {
   return TICKET_STATUS_LABELS[status];
 }
 
-/** Audit actions are "ticket.status:<old>-><new>"; other actions are shown as recorded. */
+/** Audit actions are "ticket.status:<old>-><new>" or "ticket.reply"; others are shown as recorded. */
 export function auditActionLabel(action: string): string {
+  if (action === "ticket.reply") return "Staf membalas pelanggan";
   const match = /^ticket\.status:(open|in_progress|resolved)->(open|in_progress|resolved)$/.exec(action);
   if (!match) return action;
   const from = match[1] as TicketStatus;
@@ -38,5 +39,6 @@ export function auditActionLabel(action: string): string {
 export function roleLabel(role: string): string {
   if (role === "user") return "Pelanggan";
   if (role === "assistant") return "Asisten";
+  if (role === "staff") return "Staf";
   return role;
 }

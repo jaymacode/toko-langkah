@@ -175,12 +175,17 @@ def run_loadcheck(
     conversation_ids: list[str] = []
     server_errors = 0
     started = time.perf_counter()
-    try:
+
+    def new_conversation() -> str:
         created = client.post("/conversations", headers=headers)
         if created.status_code != 201:
             raise RuntimeError(f"could not create a conversation (status {created.status_code})")
-        conversation_id = created.json()["id"]
+        conversation_id: str = created.json()["id"]
         conversation_ids.append(conversation_id)
+        return conversation_id
+
+    try:
+        conversation_id = new_conversation()
         for index in range(turns):
             intent = INTENT_ORDER[index % len(INTENT_ORDER)]
             body = {
@@ -204,6 +209,10 @@ def run_loadcheck(
                 bucket.errors += 1
                 if response.status_code >= 500:
                     server_errors += 1
+            if intent == "handoff":
+                # The open ticket hands the conversation to staff (0011): later assistant turns
+                # would not run the assistant, so the next intent starts a fresh conversation.
+                conversation_id = new_conversation()
     finally:
         _cleanup(database_url, user_id, conversation_ids)
     wall_seconds = time.perf_counter() - started

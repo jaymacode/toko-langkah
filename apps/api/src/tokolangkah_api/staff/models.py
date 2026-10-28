@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, StringConstraints, field_validator
 
-from tokolangkah_api.conversations.models import Message, Ticket
+from tokolangkah_api.conversations.models import MESSAGE_MAX_CHARS, Message, Ticket
 
 TicketStatus = Literal["open", "in_progress", "resolved"]
 
@@ -25,6 +25,9 @@ class MeResponse(BaseModel):
 
 class StaffTicket(Ticket):
     customer_alias: str
+    # Role of the newest transcript message ("user" means the customer is waiting for staff).
+    last_message_role: str | None = None
+    last_message_at: datetime | None = None
 
 
 class StaffTicketList(BaseModel):
@@ -46,3 +49,24 @@ class StatusChange(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     status: TicketStatus
+
+
+class StaffReply(BaseModel):
+    """One staff message in the ticket's conversation. Idempotent per client_message_id."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    content: Annotated[str, StringConstraints(min_length=1, max_length=MESSAGE_MAX_CHARS)]
+    client_message_id: uuid.UUID
+
+    @field_validator("content")
+    @classmethod
+    def _not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("must not be blank")
+        return value
+
+
+class StaffReplyResult(BaseModel):
+    message: Message
+    ticket: Ticket

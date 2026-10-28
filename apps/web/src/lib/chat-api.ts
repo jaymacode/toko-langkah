@@ -58,6 +58,8 @@ export type Evidence = {
 };
 
 export type TurnEnvelope = {
+  /** Absent on envelopes stored before the staff handoff existed; both mean an assistant reply. */
+  kind?: "assistant";
   message_id: string;
   answer: string;
   next_action: NextAction;
@@ -67,6 +69,15 @@ export type TurnEnvelope = {
   order: Order | null;
   ticket: Ticket | null;
   provider: AssistantProvider;
+};
+
+/**
+ * Reply to a message sent while staff handles the conversation (an unresolved ticket exists).
+ * The assistant did not run; the message waits in the transcript for staff.
+ */
+export type StaffRelay = {
+  kind: "staff";
+  ticket: Ticket;
 };
 
 export type TurnRequest = {
@@ -133,6 +144,7 @@ export function isAssistantProvider(value: unknown): value is AssistantProvider 
 export function isTurnEnvelope(value: unknown): value is TurnEnvelope {
   return (
     isRecord(value) &&
+    (value.kind === undefined || value.kind === "assistant") &&
     typeof value.message_id === "string" &&
     UUID_PATTERN.test(value.message_id) &&
     typeof value.answer === "string" &&
@@ -146,6 +158,10 @@ export function isTurnEnvelope(value: unknown): value is TurnEnvelope {
     (value.ticket === null || isTicket(value.ticket)) &&
     isAssistantProvider(value.provider)
   );
+}
+
+export function isStaffRelay(value: unknown): value is StaffRelay {
+  return isRecord(value) && value.kind === "staff" && isTicket(value.ticket);
 }
 
 function invalidResponse(): ApiError {
@@ -181,7 +197,7 @@ export async function sendTurn(
   conversationId: string,
   turn: TurnRequest,
   options: AuthedCallOptions = {},
-): Promise<TurnEnvelope> {
+): Promise<TurnEnvelope | StaffRelay> {
   if (!ID_PATTERN.test(conversationId)) {
     throw new ApiError("not_found", "Conversation not found.", 404);
   }
@@ -191,12 +207,13 @@ export async function sendTurn(
     body: turn,
     ...(options.signal ? { signal: options.signal } : {}),
   });
+  if (isStaffRelay(body)) return body;
   if (!isTurnEnvelope(body)) throw invalidResponse();
   return body;
 }
 
 export type ConversationMessage = {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "staff";
   content: string;
   created_at: string;
 };
@@ -211,6 +228,8 @@ export type ConversationHistory = {
   id: string;
   messages: ConversationMessage[];
   latest: LatestTurn | null;
+  /** The unresolved ticket while staff handles the conversation (the assistant is off), else null. */
+  handoff: Ticket | null;
 };
 
 /** Runtime guard for the restore field. Extra fields are tolerated; the typed fields must match. */
@@ -252,13 +271,20 @@ export async function getConversation(
   // An absent field (older API) reads as null; a present value must match the guard.
   const latest = body.latest === undefined || body.latest === null ? null : body.latest;
   if (latest !== null && !isLatestTurn(latest)) throw invalidResponse();
-  return { id: body.id, messages: body.messages, latest: latest as LatestTurn | null };
+  const handoff = body.handoff === undefined || body.handoff === null ? null : body.handoff;
+  if (handoff !== null && !isTicket(handoff)) throw invalidResponse();
+  return {
+    id: body.id,
+    messages: body.messages,
+    latest: latest as LatestTurn | null,
+    handoff: handoff as Ticket | null,
+  };
 }
 
 function isConversationMessage(value: unknown): value is ConversationMessage {
   return (
     isRecord(value) &&
-    (value.role === "user" || value.role === "assistant") &&
+    (value.role === "user" || value.role === "assistant" || value.role === "staff") &&
     typeof value.content === "string" &&
     typeof value.created_at === "string"
   );

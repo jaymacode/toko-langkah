@@ -127,6 +127,9 @@ export type TicketPage = {
 /** Staff list rows may carry the customer alias (never the auth UUID). */
 export type StaffTicketSummary = Ticket & {
   customer_alias?: string | null;
+  /** Who wrote the newest transcript message; "user" means the customer is waiting for staff. */
+  last_message_role?: string | null;
+  last_message_at?: string | null;
 };
 
 export type StaffTicketPage = {
@@ -145,10 +148,15 @@ export type AuditEvent = {
   created_at: string;
 };
 
-export type StaffTicketDetail = Ticket & {
+export type StaffTicketDetail = StaffTicketSummary & {
   customer_alias: string | null;
   transcript: TranscriptMessage[];
   audit: AuditEvent[];
+};
+
+export type StaffReplyResult = {
+  message: TranscriptMessage;
+  ticket: Ticket;
 };
 
 export type StaffTicketFilter = {
@@ -287,7 +295,11 @@ export function isTicketPage(value: unknown): value is TicketPage {
 function isStaffTicketSummary(value: unknown): value is StaffTicketSummary {
   if (!isTicket(value)) return false;
   const extra = value as unknown as Record<string, unknown>;
-  return extra.customer_alias === undefined || isNullableString(extra.customer_alias);
+  return (
+    (extra.customer_alias === undefined || isNullableString(extra.customer_alias)) &&
+    (extra.last_message_role === undefined || isNullableString(extra.last_message_role)) &&
+    (extra.last_message_at === undefined || extra.last_message_at === null || isTimestamp(extra.last_message_at))
+  );
 }
 
 export function isStaffTicketPage(value: unknown): value is StaffTicketPage {
@@ -312,8 +324,12 @@ function isAuditEvent(value: unknown): value is AuditEvent {
   );
 }
 
+export function isStaffReplyResult(value: unknown): value is StaffReplyResult {
+  return isRecord(value) && isTranscriptMessage(value.message) && isTicket(value.ticket);
+}
+
 export function isStaffTicketDetail(value: unknown): value is StaffTicketDetail {
-  if (!isTicket(value)) return false;
+  if (!isStaffTicketSummary(value)) return false;
   const extra = value as unknown as Record<string, unknown>;
   return (
     isNullableString(extra.customer_alias) &&
@@ -559,6 +575,29 @@ export async function updateStaffTicketStatus(
     ...request,
   });
   if (!isTicket(body)) throw invalidResponse();
+  return body;
+}
+
+/**
+ * Staff reply in the ticket's conversation. The same client_message_id on a retry returns the
+ * stored message instead of posting twice. A resolved ticket answers 409 (the assistant has the chat).
+ */
+export async function postStaffReply(
+  ticketId: string,
+  reply: { content: string; client_message_id: string },
+  accessToken: string,
+  options: AuthedCallOptions = {},
+): Promise<StaffReplyResult> {
+  if (!TICKET_ID_PATTERN.test(ticketId)) {
+    throw new ApiError("not_found", "Order or ticket not found.", 404);
+  }
+  const { client, request } = authed(accessToken, options);
+  const body = await requestJson(`/staff/tickets/${ticketId}/messages`, client, {
+    method: "POST",
+    body: reply,
+    ...request,
+  });
+  if (!isStaffReplyResult(body)) throw invalidResponse();
   return body;
 }
 
