@@ -469,6 +469,39 @@ export async function getProduct(
   return body;
 }
 
+export type PolicySection = { id: string; section: string; text: string };
+export type PublicPolicy = {
+  id: string;
+  title: string;
+  version: string;
+  effective_at: string;
+  sections: PolicySection[];
+};
+
+function isPolicySection(value: unknown): value is PolicySection {
+  return isRecord(value) && typeof value.id === "string" && typeof value.section === "string" && typeof value.text === "string";
+}
+
+export function isPublicPolicy(value: unknown): value is PublicPolicy {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.title === "string" &&
+    typeof value.version === "string" &&
+    isTimestamp(value.effective_at) &&
+    Array.isArray(value.sections) &&
+    value.sections.every(isPolicySection)
+  );
+}
+
+/** Active store policies, verbatim (GET /policies): the same text the assistant cites. */
+export async function listPolicies(clientOptions: ClientOptions & { signal?: AbortSignal } = {}): Promise<PublicPolicy[]> {
+  const { signal, ...rest } = clientOptions;
+  const body = await requestJson("/policies", rest, { method: "GET", ...(signal ? { signal } : {}) });
+  if (!isRecord(body) || !Array.isArray(body.items) || !body.items.every(isPublicPolicy)) throw invalidResponse();
+  return body.items;
+}
+
 // ---- Authenticated calls ----------------------------------------------------
 
 type AuthedRequest = { client: ClientOptions; request: { accessToken: string; signal?: AbortSignal } };
@@ -486,6 +519,17 @@ function authed(accessToken: string, options: AuthedCallOptions): AuthedRequest 
 export async function getMe(accessToken: string, options: AuthedCallOptions = {}): Promise<Me> {
   const { client, request } = authed(accessToken, options);
   const body = await requestJson("/me", client, { method: "GET", ...request });
+  if (!isMe(body)) throw invalidResponse();
+  return body;
+}
+
+/**
+ * Makes the signed-in account a customer of the demo store (POST /me/customer). Idempotent; the
+ * server takes the user from the token and the store from its settings. Returns the updated /me.
+ */
+export async function registerCustomer(accessToken: string, options: AuthedCallOptions = {}): Promise<Me> {
+  const { client, request } = authed(accessToken, options);
+  const body = await requestJson("/me/customer", client, { method: "POST", ...request });
   if (!isMe(body)) throw invalidResponse();
   return body;
 }

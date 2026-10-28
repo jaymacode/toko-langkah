@@ -6,7 +6,7 @@ These decide routing only. Authorization is enforced by the ToolRunner and by RL
 from __future__ import annotations
 
 import re
-from typing import Final
+from typing import Final, Literal
 
 from tokolangkah_api.assistant.query_parser import ProductFilters
 from tokolangkah_api.orders.models import ORDER_NUMBER_PATTERN
@@ -21,12 +21,31 @@ _HANDOFF_RE: Final = re.compile(
     re.IGNORECASE,
 )
 _SUPPORT_QUESTION_RE: Final = re.compile(r"\b(?:jam|kapan|hari\s+apa)\b", re.IGNORECASE)
-_ORDER_WORDS_RE: Final = re.compile(r"\b(?:pesanan|order|status|lacak|resi|paket)\b", re.IGNORECASE)
+_ORDER_WORDS_RE: Final = re.compile(
+    r"\b(?:pesanan|pesananku|order|orderku|status|lacak|resi|paket|paketku)\b", re.IGNORECASE
+)
 _ORDER_CANDIDATE_RE: Final = re.compile(
     r"(?<![A-Za-z0-9-])[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+(?![A-Za-z0-9-])"
 )
 _ORDER_NUMBER_RE: Final = re.compile(ORDER_NUMBER_PATTERN)
 _TOKEN_RE: Final = re.compile(r"[a-z]+")
+# "My orders" rather than a question about how orders work in general.
+_MY_ORDERS_RE: Final = re.compile(
+    r"\b(?:saya|aku|gue|gw|punyaku|pesananku|orderku|milikku)\b"
+    r"|\b(?:apa\s+(?:saja|aja)|semua|daftar|riwayat|cek|lihat|mana\s+saja|mana\s+aja)\b",
+    re.IGNORECASE,
+)
+_NOT_DELIVERED_RE: Final = re.compile(
+    r"\bbelum\s+(?:sampai|diterima|datang|tiba|nyampe|nyampai)\b"
+    r"|\b(?:dalam\s+perjalanan|masih\s+di\s+jalan|sedang\s+dikirim|masih\s+dikirim)\b",
+    re.IGNORECASE,
+)
+_DELIVERED_RE: Final = re.compile(
+    r"\b(?:sudah|udah)\s+(?:sampai|diterima|datang|tiba|nyampe)\b", re.IGNORECASE
+)
+_CANCELLED_RE: Final = re.compile(r"\b(?:batal|dibatalkan|pembatalan)\b", re.IGNORECASE)
+
+OrderGroup = Literal["all", "not_delivered", "delivered", "cancelled"]
 
 POLICY_TRIGGERS: Final = frozenset(
     {
@@ -74,6 +93,22 @@ def find_order_number(text: str) -> str | None:
 
 def wants_order_status(text: str) -> bool:
     return _ORDER_WORDS_RE.search(text) is not None or find_order_number(text) is not None
+
+
+def wants_my_orders(text: str) -> bool:
+    """The customer asks about their own orders (list or status), not about order policy."""
+    return _MY_ORDERS_RE.search(text) is not None or order_group(text) != "all"
+
+
+def order_group(text: str) -> OrderGroup:
+    """Which of the customer's orders the question is about. Routing only, never authorization."""
+    if _NOT_DELIVERED_RE.search(text):
+        return "not_delivered"
+    if _DELIVERED_RE.search(text):
+        return "delivered"
+    if _CANCELLED_RE.search(text):
+        return "cancelled"
+    return "all"
 
 
 def looks_like_policy(text: str) -> bool:

@@ -7,7 +7,8 @@ import { useAuth } from "@/components/auth-provider";
 import { NOT_CONFIGURED_MESSAGE } from "@/components/account-states";
 import { SiteFrame } from "@/components/site-frame";
 import type { AppMode } from "@/lib/config";
-import { getMe } from "@/lib/api";
+import Link from "next/link";
+import { getMe, registerCustomer } from "@/lib/api";
 import { getBrowserSupabase } from "@/lib/supabase";
 
 export const INVALID_CREDENTIALS_MESSAGE = "Email atau kata sandi salah.";
@@ -27,11 +28,18 @@ export function signInErrorMessage(error: { status?: number | undefined }): stri
   return SIGN_IN_UNAVAILABLE_MESSAGE;
 }
 
-async function landingFor(accessToken: string | null): Promise<string> {
+/**
+ * Where to go after sign-in. Staff go to the ticket console. A new account (no customer and no
+ * staff store yet, e.g. right after confirming its email) is made a customer of the demo store by
+ * the server first, so it can chat and see its orders.
+ */
+export async function landingFor(accessToken: string | null): Promise<string> {
   if (accessToken === null) return "/pesanan";
   try {
     const me = await getMe(accessToken);
-    return me.staff_stores.length > 0 ? "/staf" : "/pesanan";
+    if (me.staff_stores.length > 0) return "/staf";
+    if (me.customer_stores.length === 0) await registerCustomer(accessToken);
+    return "/pesanan";
   } catch {
     return "/pesanan"; // the orders page shows its own error state if the API is down
   }
@@ -150,6 +158,12 @@ export function SignInView({ mode }: { mode: AppMode }) {
             >
               {pending ? "Memeriksa…" : "Masuk"}
             </button>
+            <p className="text-[15px] text-muted">
+              Belum punya akun?{" "}
+              <Link href="/daftar" className="inline-flex min-h-11 items-center font-medium text-text underline underline-offset-4">
+                Daftar
+              </Link>
+            </p>
           </form>
         )}
       </section>

@@ -10,7 +10,7 @@ import { useCart } from "@/lib/use-store";
 
 export const DEMO_LABEL = "Demo — produk, pesanan, dan kebijakan fiktif";
 
-export type NavKey = "beranda" | "produk" | "asisten" | "pesanan" | "keranjang" | "staf";
+export type NavKey = "beranda" | "produk" | "asisten" | "bantuan" | "pesanan" | "keranjang" | "staf";
 
 const NAV_LINK_CLASS =
   "inline-flex min-h-11 items-center rounded-pill px-3 text-[15px] text-text transition-colors duration-200 hover:bg-stone aria-[current=page]:bg-primary aria-[current=page]:text-on-primary";
@@ -105,6 +105,11 @@ export function SiteFrame({
                 </Link>
               </li>
               <li>
+                <Link href="/bantuan" aria-current={current === "bantuan" ? "page" : undefined} className={NAV_LINK_CLASS}>
+                  Bantuan
+                </Link>
+              </li>
+              <li>
                 <Link href="/pesanan" aria-current={current === "pesanan" ? "page" : undefined} className={NAV_LINK_CLASS}>
                   Pesanan
                 </Link>
@@ -186,11 +191,8 @@ export function SiteFrame({
                 </Link>
               </li>
               <li>
-                <Link
-                  href={assistantHref("Bagaimana kebijakan retur dan penukaran ukuran?")}
-                  className="inline-flex min-h-11 items-center text-text underline-offset-4 hover:underline"
-                >
-                  Kebijakan retur
+                <Link href="/bantuan" className="inline-flex min-h-11 items-center text-text underline-offset-4 hover:underline">
+                  Bantuan &amp; FAQ
                 </Link>
               </li>
               <li>

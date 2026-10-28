@@ -94,6 +94,8 @@ class TurnResult:
     order: Order | None
     ticket: Ticket | None
     provider: str
+    # The customer's own orders when they asked for a list ("pesanan saya yang belum sampai").
+    orders: tuple[Order, ...] = ()
 
 
 def format_idr(amount: int) -> str:
@@ -127,6 +129,33 @@ def _order_answer(order: Order) -> str:
     if order.eta_text:
         text += f" {order.eta_text}"
     return text
+
+
+ORDER_GROUP_PHRASES: Final[dict[str, str]] = {
+    "all": "",
+    "not_delivered": " yang belum sampai",
+    "delivered": " yang sudah sampai",
+    "cancelled": " yang dibatalkan",
+}
+
+
+def _orders_answer(orders: list[Order], group: str) -> str:
+    """A plain-text summary of the customer's own orders; the cards carry the details."""
+    phrase = ORDER_GROUP_PHRASES.get(group, "")
+    if not orders:
+        if group == "all":
+            return "Anda belum punya pesanan di akun ini."
+        return f"Tidak ada pesanan Anda{phrase}."
+    lines = [f"Ada {len(orders)} pesanan Anda{phrase}:"]
+    for order in orders:
+        label = STATUS_LABELS.get(order.status, order.status)
+        line = f"- {order.order_number}: {label}"
+        if order.tracking_code:
+            line += f", nomor resi {order.tracking_code}"
+        if order.eta_text:
+            line += f", perkiraan {order.eta_text}"
+        lines.append(line + ".")
+    return "\n".join(lines)
 
 
 def _product_answer(products: list[ProductHit]) -> str:
@@ -242,6 +271,20 @@ def _route(turn: TurnInput, planner: Planner, tools: ToolRunner) -> TurnResult:
             order=tools.order,
             ticket=None,
             provider=planner.name,
+        )
+    if decision.intent == "orders":
+        if not tools.orders_listed:
+            return _clarify_result(ORDER_CLARIFY, planner.name, base)
+        return TurnResult(
+            answer=_orders_answer(tools.orders, tools.order_group),
+            next_action="answer",
+            citations=(),
+            products=(),
+            filters=base,
+            order=None,
+            ticket=None,
+            provider=planner.name,
+            orders=tuple(tools.orders),
         )
     if decision.clarify_reason == "order_number_missing":
         return _clarify_result(ORDER_CLARIFY, planner.name, base)

@@ -69,6 +69,8 @@ export type TurnEnvelope = {
   order: Order | null;
   ticket: Ticket | null;
   provider: AssistantProvider;
+  /** The customer's own orders for a list question; absent on envelopes stored before it existed. */
+  orders?: Order[];
 };
 
 /**
@@ -156,7 +158,8 @@ export function isTurnEnvelope(value: unknown): value is TurnEnvelope {
     (value.filters === null || isProductFilters(value.filters)) &&
     (value.order === null || isOrder(value.order)) &&
     (value.ticket === null || isTicket(value.ticket)) &&
-    isAssistantProvider(value.provider)
+    isAssistantProvider(value.provider) &&
+    (value.orders === undefined || (Array.isArray(value.orders) && value.orders.every(isOrder)))
   );
 }
 

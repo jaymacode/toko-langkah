@@ -52,6 +52,7 @@ export function AssistantMessage({
       ) : null}
 
       {envelope.order ? <OrderCard order={envelope.order} /> : null}
+      {envelope.orders && envelope.orders.length > 0 ? <OrderList orders={envelope.orders} /> : null}
       {envelope.ticket ? <TicketCard ticket={envelope.ticket} /> : null}
     </div>
   );
@@ -83,6 +84,33 @@ function OrderCard({ order }: { order: Order }) {
         Lihat detail pesanan {order.order_number}
       </Link>
     </section>
+  );
+}
+
+/** The customer's own orders from a list question: one compact row each, linking to the detail. */
+function OrderList({ orders }: { orders: Order[] }) {
+  return (
+    <ul aria-label="Pesanan Anda" className="flex flex-col divide-y divide-rule border-t border-rule">
+      {orders.map((order) => (
+        <li key={order.order_number} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5">
+          <div className="min-w-0">
+            <p className="tabular font-medium text-text">{order.order_number}</p>
+            <p className="text-sm text-text">
+              {orderStatusLabel(order.status)}
+              {order.tracking_code ? <span className="tabular"> · resi {order.tracking_code}</span> : null}
+            </p>
+            {order.eta_text ? <p className="text-sm text-muted">Perkiraan: {order.eta_text}</p> : null}
+          </div>
+          <Link
+            href={`/pesanan/${order.order_number}`}
+            aria-label={`Lihat detail pesanan ${order.order_number}`}
+            className="inline-flex min-h-11 items-center rounded-pill border border-text px-4 text-[14px] text-text transition-colors duration-200 hover:bg-primary hover:text-on-primary"
+          >
+            Detail
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 

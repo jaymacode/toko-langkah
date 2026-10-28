@@ -92,6 +92,18 @@ _INSERT_AUDIT_SQL = (
 )
 
 
+_REGISTER_CUSTOMER_SQL = (
+    "SELECT store_external_id, alias FROM tokolangkah_private.register_customer(%s::uuid, %s::text)"
+)
+
+
+def register_customer(cursor: Cursor, user_id: uuid.UUID, store_external_id: str) -> bool:
+    """Make the verified user a customer of the store (0012). False when not allowed (staff, unknown
+    user, unknown store). Runs as the API login role, outside the user transaction."""
+    cursor.execute(_REGISTER_CUSTOMER_SQL, (user_id, store_external_id))
+    return cursor.fetchone() is not None
+
+
 def customer_stores(cursor: Cursor, user_id: uuid.UUID) -> list[str]:
     cursor.execute(_CUSTOMER_STORES_SQL, (user_id,))
     return [row[0] for row in cursor.fetchall()]

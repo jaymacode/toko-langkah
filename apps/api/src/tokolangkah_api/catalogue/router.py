@@ -1,4 +1,4 @@
-"""Public catalogue routes: GET /products and GET /products/{slug}."""
+"""Public catalogue routes: GET /products, GET /products/{slug} and GET /policies (help page)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from starlette.responses import Response
 
 from tokolangkah_api.catalogue import repository
-from tokolangkah_api.catalogue.models import SLUG_PATTERN, Product, ProductPage
+from tokolangkah_api.catalogue.models import SLUG_PATTERN, PolicyList, Product, ProductPage
 from tokolangkah_api.errors import ErrorBody, ErrorEnvelope
 from tokolangkah_api.request_id import REQUEST_ID_HEADER, request_id_from_scope
 from tokolangkah_api.settings import Settings
@@ -66,3 +66,14 @@ def get_product(
     if product is None:
         raise HTTPException(status_code=404)
     return product
+
+
+@router.get("/policies", response_model=PolicyList)
+def list_policies(request: Request) -> PolicyList | Response:
+    """Active store policies, verbatim, for the public help page. Same text the assistant cites."""
+    settings: Settings = request.app.state.settings
+    try:
+        with repository.anon_cursor(settings) as cursor:
+            return repository.list_policies(cursor)
+    except (psycopg.Error, repository.DatabaseUnavailable):
+        return _service_unavailable(request)

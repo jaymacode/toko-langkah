@@ -119,6 +119,8 @@ class TurnEnvelope(BaseModel):
     order: Order | None
     ticket: Ticket | None
     provider: Literal["rules", "openai"]
+    # The customer's own orders for a list question; absent on envelopes stored before it existed.
+    orders: list[Order] = Field(default_factory=list)
 
 
 class StaffRelay(BaseModel):

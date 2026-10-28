@@ -6,7 +6,7 @@ is rejected instead of silently ignored. Identity comes only from the verified t
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Final
+from typing import Annotated, Any, Final, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
@@ -38,6 +38,14 @@ class GetOrderStatusArgs(BaseModel):
     order_number: OrderNumber
 
 
+class ListMyOrdersArgs(BaseModel):
+    """The signed-in customer's own orders. No identity argument: it comes from the token."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status_group: Literal["all", "not_delivered", "delivered", "cancelled"] = "all"
+
+
 class CreateEscalationArgs(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -51,6 +59,7 @@ TOOL_ARGUMENT_MODELS: Final[dict[str, type[BaseModel]]] = {
     "search_products": SearchProductsArgs,
     "search_policies": SearchPoliciesArgs,
     "get_order_status": GetOrderStatusArgs,
+    "list_my_orders": ListMyOrdersArgs,
     "create_escalation": CreateEscalationArgs,
 }
 

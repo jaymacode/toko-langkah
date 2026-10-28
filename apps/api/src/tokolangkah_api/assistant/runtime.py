@@ -26,6 +26,7 @@ from tokolangkah_api.assistant.query_parser import MAX_KEYWORDS, ProductFilters,
 from tokolangkah_api.assistant.tools import (
     TOOL_ARGUMENT_MODELS,
     GetOrderStatusArgs,
+    ListMyOrdersArgs,
     SearchPoliciesArgs,
     SearchProductsArgs,
 )
@@ -36,7 +37,16 @@ from tokolangkah_api.orders import repository as order_repository
 from tokolangkah_api.orders.models import Order
 
 # Only these tools are offered to a model planner. create_escalation is server-only (escalate()).
-MODEL_TOOLS: Final = frozenset({"search_products", "search_policies", "get_order_status"})
+MODEL_TOOLS: Final = frozenset(
+    {"search_products", "search_policies", "get_order_status", "list_my_orders"}
+)
+# Order statuses in each group the customer can ask about. "Belum sampai" = not yet delivered and
+# not cancelled.
+ORDER_GROUPS: Final[dict[str, frozenset[str]]] = {
+    "not_delivered": frozenset({"processing", "shipped"}),
+    "delivered": frozenset({"delivered"}),
+    "cancelled": frozenset({"cancelled"}),
+}
 ESCALATION_REASON: Final = "Pelanggan meminta bantuan staf"
 ESCALATION_SUMMARY_CHARS: Final = 1000
 
@@ -111,6 +121,9 @@ class ToolRunner:
         self.products: list[ProductHit] | None = None
         self.order_checked = False
         self.order: Order | None = None
+        self.orders_listed = False
+        self.orders: list[Order] = []
+        self.order_group = "all"
         self.ticket: Ticket | None = None
 
     def call(self, name: object, arguments: object) -> dict[str, Any]:
@@ -133,6 +146,8 @@ class ToolRunner:
             return self._search_products(parsed)
         if isinstance(parsed, GetOrderStatusArgs):
             return self._get_order_status(parsed)
+        if isinstance(parsed, ListMyOrdersArgs):
+            return self._list_my_orders(parsed)
         raise ToolRejected("unknown_tool")  # pragma: no cover - MODEL_TOOLS guards this
 
     def _query_vector(self, text: str) -> list[float] | None:
@@ -202,6 +217,24 @@ class ToolRunner:
         return {
             "found": order is not None,
             "order": order.model_dump(mode="json") if order is not None else None,
+        }
+
+    def _list_my_orders(self, args: ListMyOrdersArgs) -> dict[str, Any]:
+        """The caller's own orders (RLS on the user transaction), optionally one status group."""
+        if self.user_id is None:
+            raise ToolRejected("no_identity")
+        with user_transaction(self._conn, self.user_id) as cursor:
+            orders = order_repository.list_orders(cursor)
+        wanted = ORDER_GROUPS.get(args.status_group)
+        if wanted is not None:
+            orders = [order for order in orders if order.status in wanted]
+        self.orders_listed = True
+        self.orders = orders
+        self.order_group = args.status_group
+        self.outcomes.append(("list_my_orders", f"{len(orders)}"))
+        return {
+            "status_group": args.status_group,
+            "orders": [order.model_dump(mode="json") for order in orders],
         }
 
     def escalate(self, summary: str) -> Ticket:

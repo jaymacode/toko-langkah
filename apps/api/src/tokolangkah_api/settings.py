@@ -56,6 +56,8 @@ class Settings(BaseSettings):
     openai_base_url: str | None = None
     # Explicit provider. Unset means `rules` outside production and no assistant in production.
     assistant_provider: AssistantProvider | None = None
+    # Store that a newly registered account joins as a customer (POST /me/customer).
+    registration_store_external_id: str = Field(default="store-demo", min_length=1, max_length=64)
     assistant_rate_limit_turns: int = Field(default=20, ge=1, le=10_000)
     assistant_rate_limit_window_seconds: int = Field(default=300, ge=1, le=86_400)
     # Admin-only (seed --target supabase). The service role key bypasses RLS; requests never use it.

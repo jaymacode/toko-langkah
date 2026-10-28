@@ -14,7 +14,7 @@ from typing import Literal, Protocol
 from tokolangkah_api.assistant.citations import Claim
 from tokolangkah_api.assistant.runtime import ToolRunner
 
-Intent = Literal["policy", "product", "order", "clarify", "abstain"]
+Intent = Literal["policy", "product", "order", "orders", "clarify", "abstain"]
 
 
 @dataclass(frozen=True)

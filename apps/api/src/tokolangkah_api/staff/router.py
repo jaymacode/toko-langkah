@@ -50,6 +50,30 @@ def get_me(
     return MeResponse(user_id=user.user_id, customer_stores=customer, staff_stores=staff)
 
 
+@router.post("/me/customer", response_model=MeResponse)
+def register_as_customer(
+    request: Request,
+    user: Annotated[AuthenticatedUser, Depends(current_user)],
+) -> MeResponse:
+    """Make a newly registered account a customer of the demo store. Idempotent.
+
+    The user comes only from the verified token and the store from server settings; the body is
+    ignored. Staff accounts are never turned into customers (403). Returns the updated /me.
+    """
+    settings: Settings = request.app.state.settings
+    with db_session.connect(settings) as conn:
+        with conn.transaction(), conn.cursor() as cursor:
+            registered = repository.register_customer(
+                cursor, user.user_id, settings.registration_store_external_id
+            )
+        with db_session.user_transaction(conn, user.user_id) as cursor:
+            customer = repository.customer_stores(cursor, user.user_id)
+            staff = repository.staff_stores(cursor, user.user_id)
+    if not registered:
+        raise HTTPException(status_code=403)
+    return MeResponse(user_id=user.user_id, customer_stores=customer, staff_stores=staff)
+
+
 @router.get("/staff/tickets", response_model=StaffTicketList)
 def list_staff_tickets(
     request: Request,

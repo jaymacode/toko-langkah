@@ -14,6 +14,8 @@ from tokolangkah_api.assistant.intent import (
     has_narrowing_product_signal,
     has_product_signal,
     looks_like_policy,
+    order_group,
+    wants_my_orders,
     wants_order_status,
 )
 from tokolangkah_api.assistant.planner import PlannerDecision
@@ -69,10 +71,16 @@ class RulesPlanner:
         query = content[:MAX_TOOL_QUERY_CHARS]
         if wants_order_status(content):
             number = find_order_number(content)
-            if number is None:
+            if number is not None:
+                tools.call("get_order_status", {"order_number": number})
+                return PlannerDecision("order")
+            if wants_my_orders(content):
+                # "cek pesanan saya apa aja yang belum sampai": list the customer's own orders.
+                tools.call("list_my_orders", {"status_group": order_group(content)})
+                return PlannerDecision("orders")
+            if not looks_like_policy(content):
                 return PlannerDecision("clarify", clarify_reason="order_number_missing")
-            tools.call("get_order_status", {"order_number": number})
-            return PlannerDecision("order")
+            # A general question about orders ("berapa lama pesanan diproses?") is a policy one.
         parsed = parse_product_query(query)
         # A property question ("tahan air?") stays on the policy path: a category word alone is
         # not a product search. Price, size or colour make it a product search.
