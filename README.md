@@ -51,6 +51,7 @@ Node 22+ with pnpm 9.15.9, Python 3.12 with uv 0.13.x, Docker (local PostgreSQL 
 ## Known limitations
 - Live model (`ASSISTANT_PROVIDER=openai`, gpt-6-luna) works end to end with a USD budget guard, but the OpenAI account first hit its 50 requests/day cap and then ran out of credit (`credit_balance_exhausted`), so Gate C AI-quality metrics are only partially measured (13 graded live turns). Hybrid retrieval (`RETRIEVAL_MODE=hybrid`, text-embedding-3-small, pgvector) is implemented and tested with fake embeddings; live ingest/eval is blocked by the same credit balance.
 - Not deployed; GitHub CI is written but has not run (no remote). See docs/DEPLOYMENT.md, including the open "dedicated database role" hardening item.
+- Store routes: `/` (storefront), `/produk` (filters in the URL), `/produk/[slug]`, `/keranjang` (browser-only demo cart; no payments, no order is created), `/asisten` (chat; `?tanya=` pre-fills the composer), `/pesanan`, `/masuk`, `/staf`.
 - No SSE streaming (turns are request/response). A reloaded chat restores the transcript plus the latest filter chips and product panel (migration 0010).
 - Supabase leaked-password protection needs the Pro plan; accepted for this synthetic demo (docs/THREAT_MODEL.md).
 - Any OpenAI-compatible endpoint works: set OPENAI_BASE_URL (https only), e.g. OpenRouter with `nvidia/nemotron-3.5-super-vl:free` and `nvidia/nemotron-3.5-embed-8b:free` (see .env.example).

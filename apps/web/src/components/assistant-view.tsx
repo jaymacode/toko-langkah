@@ -12,18 +12,19 @@ import type { AppMode } from "@/lib/config";
 export { DEMO_LABEL };
 
 /**
- * Customer assistant layout: chat on the left, contextual panel on the right. The
- * panel shows featured products until the assistant returns a product search; on
- * narrow screens it stacks directly below the chat, so results sit under the answer.
+ * Customer assistant page (/asisten): chat on the left, contextual panel on the right. The
+ * panel shows products until the assistant returns a product search; on narrow screens it
+ * stacks directly below the chat, so results sit under the answer. `initialQuestion` comes
+ * from ?tanya= (store pages link here with a question) and is only placed in the composer.
  */
-export function HomeView({ mode }: { mode: AppMode }) {
+export function AssistantView({ mode, initialQuestion = "" }: { mode: AppMode; initialQuestion?: string }) {
   const [results, setResults] = useState<ProductHit[] | null>(null);
 
   return (
     <SiteFrame mode={mode} current="asisten">
       <div className="grid grid-cols-1 gap-10 md:grid-cols-2 md:items-start lg:grid-cols-[5fr_7fr] lg:gap-12">
         <div className="min-w-0 lg:sticky lg:top-28">
-          <ChatShell onResults={setResults} />
+          <ChatShell onResults={setResults} initialDraft={initialQuestion} />
         </div>
         <aside aria-labelledby="panel-heading" className="flex min-w-0 flex-col gap-4">
           {results === null ? (

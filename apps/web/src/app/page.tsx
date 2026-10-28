@@ -1,7 +1,7 @@
-import { HomeView } from "@/components/home-view";
+import { StorefrontView } from "@/components/storefront-view";
 import { getConfig } from "@/lib/config";
 
 export default function HomePage() {
   const { mode } = getConfig();
-  return <HomeView mode={mode} />;
+  return <StorefrontView mode={mode} />;
 }

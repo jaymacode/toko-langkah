@@ -23,3 +23,6 @@ htmlcov/
 coverage.xml
 .playwright-mcp/
 *.tsbuildinfo
+
+# impeccable decision-page runtime state (keys, logs)
+.impeccable/questions/

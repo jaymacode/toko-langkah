@@ -58,7 +58,14 @@ function toDrawerSource(evidence: Evidence): DrawerSource {
  * are announced to screen readers. Results from a product search are passed up
  * through onResults so the contextual panel can show them.
  */
-export function ChatShell({ onResults }: { onResults?: (products: ProductHit[]) => void }) {
+export function ChatShell({
+  onResults,
+  initialDraft = "",
+}: {
+  onResults?: (products: ProductHit[]) => void;
+  /** Text placed in the composer on load (e.g. a question about a product); never auto-sent. */
+  initialDraft?: string;
+}) {
   const auth = useAuth();
   const inputId = useId();
   const hintId = useId();
@@ -72,7 +79,7 @@ export function ChatShell({ onResults }: { onResults?: (products: ProductHit[]) 
   /** True once a turn has been answered in this page load; a late restore then leaves chips and panel alone. */
   const turnAnsweredRef = useRef(false);
   const [messages, setMessages] = useState<LogEntry[]>([]);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(initialDraft.slice(0, MAX_MESSAGE_LENGTH));
   const [filters, setFilters] = useState<ProductFilters | null>(null);
   const [filterHint, setFilterHint] = useState(false);
   const [sending, setSending] = useState(false);

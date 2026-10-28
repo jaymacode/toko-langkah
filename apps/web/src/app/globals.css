@@ -16,6 +16,10 @@
   --color-rule: #D2D2CC;
   --color-accent: #E8452B;
   --color-accent-ink: #B9321B;
+  /* On the ink band (assistant call-out): quiet line 8.0:1, body 13.9:1 on #151617; rule is a divider only. */
+  --color-ink-quiet: #A9ADB1;
+  --color-ink-muted: #D7D9DB;
+  --color-ink-rule: #3A3D40;
 
   --radius-card: 20px;
   --radius-bay: 14px;

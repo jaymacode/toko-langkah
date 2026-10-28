@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { CatalogueView } from "@/components/catalogue-view";
 import { getConfig } from "@/lib/config";
 
@@ -9,5 +10,10 @@ export const metadata: Metadata = {
 
 export default function ProductsPage() {
   const { mode } = getConfig();
-  return <CatalogueView mode={mode} />;
+  // The filters read the URL on the client; Suspense keeps the page statically renderable.
+  return (
+    <Suspense>
+      <CatalogueView mode={mode} />
+    </Suspense>
+  );
 }
