@@ -11,7 +11,18 @@ import type { AppMode } from "@/lib/config";
  * floating assistant or shop footer. An ink bar marks that this is a working tool for staff; the
  * demo label stays visible as on every page.
  */
-export function StaffFrame({ mode, children }: { mode: AppMode; children: ReactNode }) {
+const STAFF_LINK =
+  "inline-flex min-h-11 items-center rounded-pill px-3 text-[15px] text-ink-muted transition-colors duration-200 hover:text-on-primary aria-[current=page]:bg-on-primary aria-[current=page]:text-text";
+
+export function StaffFrame({
+  mode,
+  current,
+  children,
+}: {
+  mode: AppMode;
+  current: "tiket" | "stok";
+  children: ReactNode;
+}) {
   const auth = useAuth();
   const signedIn = auth.sessionStatus === "signed_in";
 
@@ -35,19 +46,17 @@ export function StaffFrame({ mode, children }: { mode: AppMode; children: ReactN
             <nav aria-label="Konsol staf" className="flex-1">
               <ul className="flex flex-wrap gap-1">
                 <li>
-                  <Link
-                    href="/staf"
-                    aria-current="page"
-                    className="inline-flex min-h-11 items-center rounded-pill px-3 text-[15px] aria-[current=page]:bg-on-primary aria-[current=page]:text-text"
-                  >
+                  <Link href="/staf" aria-current={current === "tiket" ? "page" : undefined} className={STAFF_LINK}>
                     Tiket
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    href="/"
-                    className="inline-flex min-h-11 items-center rounded-pill px-3 text-[15px] text-ink-muted transition-colors duration-200 hover:text-on-primary"
-                  >
+                  <Link href="/staf/stok" aria-current={current === "stok" ? "page" : undefined} className={STAFF_LINK}>
+                    Stok
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/" className={STAFF_LINK}>
                     Lihat toko
                   </Link>
                 </li>

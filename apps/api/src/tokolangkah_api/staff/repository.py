@@ -15,7 +15,14 @@ from typing import Any
 from tokolangkah_api.conversations.models import Message, Ticket
 from tokolangkah_api.conversations.repository import conversation_messages
 from tokolangkah_api.db_session import Cursor
-from tokolangkah_api.staff.models import AuditEvent, StaffTicket, StaffTicketDetail
+from tokolangkah_api.staff.models import (
+    AuditEvent,
+    InventoryList,
+    InventoryProduct,
+    InventoryVariant,
+    StaffTicket,
+    StaffTicketDetail,
+)
 
 _STAFF_STORES_SQL = "SELECT store_id FROM store_members WHERE user_id = %s"
 _CUSTOMER_STORES_SQL = (
@@ -280,3 +287,76 @@ def _ticket(cursor: Cursor, ticket_id: uuid.UUID) -> Ticket:
         created_at=row[4].astimezone(UTC),
         updated_at=row[5].astimezone(UTC),
     )
+
+
+# Products of the stores the caller staffs, with every size variant and its stock count.
+_INVENTORY_SQL = """
+SELECT p.slug, p.name, p.color, p.price_idr, p.image_path, p.image_alt,
+       COALESCE(
+           (SELECT json_agg(json_build_object('id', v.sku, 'size_eu', v.size_eu, 'stock', v.stock)
+                            ORDER BY v.size_eu)
+              FROM product_variants AS v
+             WHERE v.product_id = p.id),
+           '[]'::json) AS variants
+  FROM products AS p
+ WHERE p.store_id IN (SELECT store_id FROM store_members WHERE user_id = %s)
+ ORDER BY p.name, p.slug
+"""
+_LOCK_VARIANT_SQL = (
+    "SELECT v.id, v.stock, p.store_id, v.size_eu FROM product_variants AS v"
+    " JOIN products AS p ON p.id = v.product_id"
+    " WHERE v.sku = %s"
+    " AND p.store_id IN (SELECT store_id FROM store_members WHERE user_id = %s)"
+    " FOR UPDATE OF v"
+)
+_UPDATE_STOCK_SQL = "UPDATE product_variants SET stock = %s WHERE id = %s RETURNING stock"
+
+
+class StockConflict(Exception):
+    """The stock changed since the client read it (another staff change). Carries the current."""
+
+    def __init__(self, current: int) -> None:
+        super().__init__("stock changed")
+        self.current = current
+
+
+def list_inventory(cursor: Cursor, user_id: uuid.UUID) -> InventoryList:
+    cursor.execute(_INVENTORY_SQL, (user_id,))
+    return InventoryList(
+        items=[
+            InventoryProduct(
+                slug=slug,
+                name=name,
+                color=color,
+                price_idr=price,
+                image_path=image_path,
+                image_alt=image_alt,
+                variants=[InventoryVariant.model_validate(v) for v in variants],
+            )
+            for slug, name, color, price, image_path, image_alt, variants in cursor.fetchall()
+        ]
+    )
+
+
+def change_stock(
+    cursor: Cursor,
+    user_id: uuid.UUID,
+    sku: str,
+    new_stock: int,
+    expected_stock: int | None,
+) -> InventoryVariant | None:
+    """Set one variant's stock and audit it, in the caller's transaction. None when not staff."""
+    cursor.execute(_LOCK_VARIANT_SQL, (sku, user_id))
+    locked = cursor.fetchone()
+    if locked is None:
+        return None
+    variant_id, old_stock, store_id, size_eu = locked
+    if expected_stock is not None and expected_stock != old_stock:
+        raise StockConflict(int(old_stock))
+    if new_stock != old_stock:
+        cursor.execute(_UPDATE_STOCK_SQL, (new_stock, variant_id))
+        cursor.execute(
+            _INSERT_AUDIT_SQL,
+            (store_id, user_id, f"variant.stock:{old_stock}->{new_stock}", str(variant_id)),
+        )
+    return InventoryVariant(id=sku, size_eu=int(size_eu), stock=new_stock)

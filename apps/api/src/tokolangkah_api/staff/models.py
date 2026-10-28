@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, StringConstraints, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 from tokolangkah_api.conversations.models import MESSAGE_MAX_CHARS, Message, Ticket
 
@@ -70,3 +70,37 @@ class StaffReply(BaseModel):
 class StaffReplyResult(BaseModel):
     message: Message
     ticket: Ticket
+
+
+STOCK_MAX = 100_000
+
+
+class InventoryVariant(BaseModel):
+    id: str  # the variant SKU, e.g. "langkah-knit-40"
+    size_eu: int
+    stock: int
+
+
+class InventoryProduct(BaseModel):
+    slug: str
+    name: str
+    color: str | None
+    price_idr: int
+    image_path: str | None
+    image_alt: str
+    variants: list[InventoryVariant]
+
+
+class InventoryList(BaseModel):
+    """Stock counts for staff of the store only. Customers never receive counts (catalogue API)."""
+
+    items: list[InventoryProduct]
+
+
+class StockChange(BaseModel):
+    """Set a variant's stock. expected_stock guards against overwriting another staff change."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    stock: Annotated[int, Field(ge=0, le=STOCK_MAX, strict=True)]
+    expected_stock: Annotated[int, Field(ge=0, le=STOCK_MAX, strict=True)] | None = None

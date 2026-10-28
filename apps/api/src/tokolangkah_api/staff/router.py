@@ -21,12 +21,15 @@ from tokolangkah_api.errors import ErrorEnvelope, error_response
 from tokolangkah_api.settings import Settings
 from tokolangkah_api.staff import repository
 from tokolangkah_api.staff.models import (
+    InventoryList,
+    InventoryVariant,
     MeResponse,
     StaffReply,
     StaffReplyResult,
     StaffTicketDetail,
     StaffTicketList,
     StatusChange,
+    StockChange,
 )
 
 MAX_LIMIT = 50
@@ -174,3 +177,55 @@ def change_staff_ticket_status(
     if ticket is None:
         raise HTTPException(status_code=404)
     return ticket
+
+
+SKU_PATTERN = r"^[a-z0-9-]{1,100}$"
+
+
+@router.get("/staff/inventory", response_model=InventoryList)
+def get_inventory(
+    request: Request,
+    user: Annotated[AuthenticatedUser, Depends(current_user)],
+) -> InventoryList:
+    """Stock per size for the caller's stores. Same 404 as other staff routes for non-staff."""
+    settings: Settings = request.app.state.settings
+    with (
+        db_session.connect(settings) as conn,
+        db_session.user_transaction(conn, user.user_id) as cursor,
+    ):
+        if not repository.is_staff(cursor, user.user_id):
+            raise HTTPException(status_code=404)
+        return repository.list_inventory(cursor, user.user_id)
+
+
+@router.patch(
+    "/staff/variants/{sku}",
+    response_model=InventoryVariant,
+    responses={409: {"model": ErrorEnvelope}},
+)
+def change_variant_stock(
+    request: Request,
+    user: Annotated[AuthenticatedUser, Depends(current_user)],
+    body: StockChange,
+    sku: Annotated[str, Path(pattern=SKU_PATTERN)],
+) -> InventoryVariant | JSONResponse:
+    """Set the stock of one size variant of the caller's store; audited. 404 for anyone else."""
+    settings: Settings = request.app.state.settings
+    try:
+        with (
+            db_session.connect(settings) as conn,
+            db_session.user_transaction(conn, user.user_id) as cursor,
+        ):
+            variant = repository.change_stock(
+                cursor, user.user_id, sku, body.stock, body.expected_stock
+            )
+    except repository.StockConflict as conflict:
+        return error_response(
+            request,
+            409,
+            "stock_conflict",
+            f"Stock changed meanwhile; current stock is {conflict.current}.",
+        )
+    if variant is None:
+        raise HTTPException(status_code=404)
+    return variant

@@ -1,9 +1,33 @@
 [
   {
+    "id": "langkah-knit-35",
+    "product_id": "product-001",
+    "size_eu": 35,
+    "stock": 0
+  },
+  {
+    "id": "langkah-knit-36",
+    "product_id": "product-001",
+    "size_eu": 36,
+    "stock": 0
+  },
+  {
+    "id": "langkah-knit-37",
+    "product_id": "product-001",
+    "size_eu": 37,
+    "stock": 0
+  },
+  {
     "id": "langkah-knit-38",
     "product_id": "product-001",
     "size_eu": 38,
     "stock": 8
+  },
+  {
+    "id": "langkah-knit-39",
+    "product_id": "product-001",
+    "size_eu": 39,
+    "stock": 0
   },
   {
     "id": "langkah-knit-40",
@@ -12,9 +36,51 @@
     "stock": 12
   },
   {
+    "id": "langkah-knit-41",
+    "product_id": "product-001",
+    "size_eu": 41,
+    "stock": 0
+  },
+  {
     "id": "langkah-knit-42",
     "product_id": "product-001",
     "size_eu": 42,
+    "stock": 0
+  },
+  {
+    "id": "langkah-knit-43",
+    "product_id": "product-001",
+    "size_eu": 43,
+    "stock": 0
+  },
+  {
+    "id": "langkah-knit-44",
+    "product_id": "product-001",
+    "size_eu": 44,
+    "stock": 0
+  },
+  {
+    "id": "langkah-knit-45",
+    "product_id": "product-001",
+    "size_eu": 45,
+    "stock": 0
+  },
+  {
+    "id": "kota-canvas-35",
+    "product_id": "product-002",
+    "size_eu": 35,
+    "stock": 0
+  },
+  {
+    "id": "kota-canvas-36",
+    "product_id": "product-002",
+    "size_eu": 36,
+    "stock": 0
+  },
+  {
+    "id": "kota-canvas-37",
+    "product_id": "product-002",
+    "size_eu": 37,
     "stock": 0
   },
   {
@@ -24,10 +90,22 @@
     "stock": 4
   },
   {
+    "id": "kota-canvas-39",
+    "product_id": "product-002",
+    "size_eu": 39,
+    "stock": 0
+  },
+  {
     "id": "kota-canvas-40",
     "product_id": "product-002",
     "size_eu": 40,
     "stock": 7
+  },
+  {
+    "id": "kota-canvas-41",
+    "product_id": "product-002",
+    "size_eu": 41,
+    "stock": 0
   },
   {
     "id": "kota-canvas-42",
@@ -36,15 +114,63 @@
     "stock": 5
   },
   {
+    "id": "kota-canvas-43",
+    "product_id": "product-002",
+    "size_eu": 43,
+    "stock": 0
+  },
+  {
+    "id": "kota-canvas-44",
+    "product_id": "product-002",
+    "size_eu": 44,
+    "stock": 0
+  },
+  {
+    "id": "kota-canvas-45",
+    "product_id": "product-002",
+    "size_eu": 45,
+    "stock": 0
+  },
+  {
+    "id": "awan-walk-35",
+    "product_id": "product-003",
+    "size_eu": 35,
+    "stock": 0
+  },
+  {
+    "id": "awan-walk-36",
+    "product_id": "product-003",
+    "size_eu": 36,
+    "stock": 0
+  },
+  {
+    "id": "awan-walk-37",
+    "product_id": "product-003",
+    "size_eu": 37,
+    "stock": 0
+  },
+  {
     "id": "awan-walk-38",
     "product_id": "product-003",
     "size_eu": 38,
     "stock": 6
   },
   {
+    "id": "awan-walk-39",
+    "product_id": "product-003",
+    "size_eu": 39,
+    "stock": 0
+  },
+  {
     "id": "awan-walk-40",
     "product_id": "product-003",
     "size_eu": 40,
+    "stock": 0
+  },
+  {
+    "id": "awan-walk-41",
+    "product_id": "product-003",
+    "size_eu": 41,
     "stock": 0
   },
   {
@@ -54,9 +180,51 @@
     "stock": 9
   },
   {
+    "id": "awan-walk-43",
+    "product_id": "product-003",
+    "size_eu": 43,
+    "stock": 0
+  },
+  {
+    "id": "awan-walk-44",
+    "product_id": "product-003",
+    "size_eu": 44,
+    "stock": 0
+  },
+  {
+    "id": "awan-walk-45",
+    "product_id": "product-003",
+    "size_eu": 45,
+    "stock": 0
+  },
+  {
+    "id": "lintas-trail-35",
+    "product_id": "product-004",
+    "size_eu": 35,
+    "stock": 0
+  },
+  {
+    "id": "lintas-trail-36",
+    "product_id": "product-004",
+    "size_eu": 36,
+    "stock": 0
+  },
+  {
+    "id": "lintas-trail-37",
+    "product_id": "product-004",
+    "size_eu": 37,
+    "stock": 0
+  },
+  {
     "id": "lintas-trail-38",
     "product_id": "product-004",
     "size_eu": 38,
+    "stock": 0
+  },
+  {
+    "id": "lintas-trail-39",
+    "product_id": "product-004",
+    "size_eu": 39,
     "stock": 0
   },
   {
@@ -66,9 +234,33 @@
     "stock": 0
   },
   {
+    "id": "lintas-trail-41",
+    "product_id": "product-004",
+    "size_eu": 41,
+    "stock": 0
+  },
+  {
     "id": "lintas-trail-42",
     "product_id": "product-004",
     "size_eu": 42,
+    "stock": 0
+  },
+  {
+    "id": "lintas-trail-43",
+    "product_id": "product-004",
+    "size_eu": 43,
+    "stock": 0
+  },
+  {
+    "id": "lintas-trail-44",
+    "product_id": "product-004",
+    "size_eu": 44,
+    "stock": 0
+  },
+  {
+    "id": "lintas-trail-45",
+    "product_id": "product-004",
+    "size_eu": 45,
     "stock": 0
   }
 ]

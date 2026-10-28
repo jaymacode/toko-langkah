@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import type { FormEvent, KeyboardEvent, RefObject } from "react";
+import type { FormEvent, KeyboardEvent, ReactNode, RefObject } from "react";
 import { useAuth } from "@/components/auth-provider";
 import {
   ApiErrorNotice,
@@ -100,7 +100,7 @@ function isWaiting(ticket: StaffTicketSummary): boolean {
 /** Staff gate. Only /me with at least one staff store unlocks the console. */
 export function StaffView({ mode }: { mode: AppMode }) {
   return (
-    <StaffFrame mode={mode}>
+    <StaffFrame mode={mode} current="tiket">
       <section aria-labelledby="staff-heading" className="flex flex-col gap-5">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-1">
           <h1 id="staff-heading" className="font-display text-[clamp(36px,4.4vw,56px)] font-bold uppercase leading-[0.88] text-text">
@@ -108,13 +108,16 @@ export function StaffView({ mode }: { mode: AppMode }) {
           </h1>
           <p className="text-[15px] text-muted">Balas pelanggan dari sini. Selama tiket belum selesai, asisten tidak menjawab.</p>
         </div>
-        <StaffGate />
+        <StaffGate>
+          <StaffDashboard />
+        </StaffGate>
       </section>
     </StaffFrame>
   );
 }
 
-function StaffGate() {
+/** Renders its children only for a signed-in staff member (/me with a staff store). */
+export function StaffGate({ children }: { children: ReactNode }) {
   const auth = useAuth();
 
   if (auth.sessionStatus === "loading") {
@@ -135,7 +138,7 @@ function StaffGate() {
   if (!auth.isStaff) {
     return <p className="rounded-card border border-border bg-surface p-5 text-text">{STAFF_ONLY_MESSAGE}</p>;
   }
-  return <StaffDashboard />;
+  return <>{children}</>;
 }
 
 /**

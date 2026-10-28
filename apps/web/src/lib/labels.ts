@@ -29,6 +29,8 @@ export function ticketStatusLabel(status: TicketStatus): string {
 /** Audit actions are "ticket.status:<old>-><new>" or "ticket.reply"; others are shown as recorded. */
 export function auditActionLabel(action: string): string {
   if (action === "ticket.reply") return "Staf membalas pelanggan";
+  const stock = /^variant\.stock:(\d+)->(\d+)$/.exec(action);
+  if (stock) return `Stok diubah dari ${stock[1]} menjadi ${stock[2]}`;
   const match = /^ticket\.status:(open|in_progress|resolved)->(open|in_progress|resolved)$/.exec(action);
   if (!match) return action;
   const from = match[1] as TicketStatus;

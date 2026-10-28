@@ -645,6 +645,78 @@ export async function postStaffReply(
   return body;
 }
 
+// ---- Staff stock (inventory) ---------------------------------------------------
+
+export type InventoryVariant = { id: string; size_eu: number; stock: number };
+export type InventoryProduct = {
+  slug: string;
+  name: string;
+  color: string | null;
+  price_idr: number;
+  image_path: string | null;
+  image_alt: string;
+  variants: InventoryVariant[];
+};
+
+const SKU_PATTERN = /^[a-z0-9-]{1,100}$/;
+export const STOCK_MAX = 100_000;
+
+function isInventoryVariant(value: unknown): value is InventoryVariant {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    Number.isSafeInteger(value.size_eu) &&
+    isNonNegativeInteger(value.stock)
+  );
+}
+
+function isInventoryProduct(value: unknown): value is InventoryProduct {
+  return (
+    isRecord(value) &&
+    typeof value.slug === "string" &&
+    typeof value.name === "string" &&
+    isNullableString(value.color) &&
+    isNonNegativeInteger(value.price_idr) &&
+    (value.image_path === null || isLocalImagePath(value.image_path)) &&
+    typeof value.image_alt === "string" &&
+    Array.isArray(value.variants) &&
+    value.variants.every(isInventoryVariant)
+  );
+}
+
+/** Stock per size for the staff member's stores (GET /staff/inventory). Staff only. */
+export async function getInventory(accessToken: string, options: AuthedCallOptions = {}): Promise<InventoryProduct[]> {
+  const { client, request } = authed(accessToken, options);
+  const body = await requestJson("/staff/inventory", client, { method: "GET", ...request });
+  if (!isRecord(body) || !Array.isArray(body.items) || !body.items.every(isInventoryProduct)) throw invalidResponse();
+  return body.items;
+}
+
+/**
+ * Sets one size variant's stock. `expectedStock` is the value the staff member saw; when another
+ * change happened meanwhile the API answers 409 and nothing is written.
+ */
+export async function updateVariantStock(
+  sku: string,
+  stock: number,
+  expectedStock: number,
+  accessToken: string,
+  options: AuthedCallOptions = {},
+): Promise<InventoryVariant> {
+  if (!SKU_PATTERN.test(sku)) throw new ApiError("not_found", "Variant not found.", 404);
+  if (!Number.isSafeInteger(stock) || stock < 0 || stock > STOCK_MAX) {
+    throw new RangeError(`stock must be an integer from 0 to ${STOCK_MAX}`);
+  }
+  const { client, request } = authed(accessToken, options);
+  const body = await requestJson(`/staff/variants/${sku}`, client, {
+    method: "PATCH",
+    body: { stock, expected_stock: expectedStock },
+    ...request,
+  });
+  if (!isInventoryVariant(body)) throw invalidResponse();
+  return body;
+}
+
 /** Turns any thrown value into a user-facing ApiError kind for display. */
 export function toApiError(error: unknown): ApiError {
   if (error instanceof ApiError) return error;
