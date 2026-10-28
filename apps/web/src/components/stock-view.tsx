@@ -299,31 +299,31 @@ function ProductStock({ product, onSaved }: { product: InventoryProduct; onSaved
                   {zero ? <span className="text-[11px] font-semibold uppercase tracking-wide text-accent-ink">habis</span> : null}
                   <span className="sr-only">, stok</span>
                 </label>
-                <div className="flex items-center gap-1">
+                <input
+                  id={inputId}
+                  inputMode="numeric"
+                  value={raw}
+                  onChange={(event) => setDraft(variant, event.target.value)}
+                  aria-invalid={bad || undefined}
+                  disabled={saving}
+                  className="tabular min-h-11 w-full min-w-0 rounded-bay border border-quiet bg-surface px-2 text-center text-[17px] font-semibold text-text focus:border-text"
+                />
+                <div className="flex gap-1">
                   <button
                     type="button"
                     aria-label={`Kurangi stok EU ${variant.size_eu}`}
                     onClick={() => step(variant, -1)}
                     disabled={saving || (value ?? 0) <= 0}
-                    className="inline-flex h-11 w-9 shrink-0 items-center justify-center rounded-pill text-text hover:bg-stone disabled:opacity-30"
+                    className="inline-flex h-11 flex-1 items-center justify-center rounded-pill border border-rule bg-surface text-text hover:border-text disabled:opacity-30"
                   >
                     <MinusIcon />
                   </button>
-                  <input
-                    id={inputId}
-                    inputMode="numeric"
-                    value={raw}
-                    onChange={(event) => setDraft(variant, event.target.value)}
-                    aria-invalid={bad || undefined}
-                    disabled={saving}
-                    className="tabular min-h-11 w-full min-w-0 rounded-bay border border-quiet bg-surface px-1 text-center text-[17px] font-semibold text-text focus:border-text"
-                  />
                   <button
                     type="button"
                     aria-label={`Tambah stok EU ${variant.size_eu}`}
                     onClick={() => step(variant, 1)}
                     disabled={saving}
-                    className="inline-flex h-11 w-9 shrink-0 items-center justify-center rounded-pill text-text hover:bg-stone disabled:opacity-30"
+                    className="inline-flex h-11 flex-1 items-center justify-center rounded-pill border border-rule bg-surface text-text hover:border-text disabled:opacity-30"
                   >
                     <PlusIcon />
                   </button>
