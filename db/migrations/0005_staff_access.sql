@@ -1,5 +1,5 @@
 -- 0005_staff_access.sql: round 3 staff access, escalation audit and ticket timestamps.
--- Contract: docs/contracts/M3M4.md section A. Earlier migrations 0001-0004 are unchanged.
+-- Earlier migrations 0001-0004 are unchanged.
 --
 -- Works on local Docker (db/local shim) and Supabase: only (select auth.uid()) and public tables.
 -- Staff identity comes only from store_members (server-owned). Customer metadata never grants staff.

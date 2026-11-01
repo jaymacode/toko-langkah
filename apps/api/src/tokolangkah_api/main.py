@@ -31,7 +31,7 @@ class HealthResponse(BaseModel):
     status: str
     app_env: AppEnv
     demo_mode: bool
-    # "rules" (deterministic demo planner, not AI), "openai", or null when unconfigured.
+    # "openai" (any OpenAI-compatible endpoint), or null when unconfigured.
     assistant_provider: str | None
 
 

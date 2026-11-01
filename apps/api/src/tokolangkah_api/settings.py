@@ -21,9 +21,8 @@ class AppEnv(StrEnum):
 
 
 class AssistantProvider(StrEnum):
-    """`rules` is a deterministic demo planner (not AI). `openai` is the real model provider."""
+    """`openai` is any OpenAI-compatible chat endpoint (OpenAI, OpenRouter, ...)."""
 
-    RULES = "rules"
     OPENAI = "openai"
 
 
@@ -54,7 +53,8 @@ class Settings(BaseSettings):
     # OpenAI-compatible endpoint, e.g. https://openrouter.ai/api/v1. Unset means api.openai.com.
     # Operator configuration only; the model never chooses a destination.
     openai_base_url: str | None = None
-    # Explicit provider. Unset means `rules` outside production and no assistant in production.
+    # Unset means `openai` when OPENAI_API_KEY and OPENAI_MODEL are set, otherwise no assistant
+    # (turns answer 503).
     assistant_provider: AssistantProvider | None = None
     # Store that a newly registered account joins as a customer (POST /me/customer).
     registration_store_external_id: str = Field(default="store-demo", min_length=1, max_length=64)
@@ -203,13 +203,9 @@ class Settings(BaseSettings):
     def _validate_assistant_provider(self) -> Settings:
         provider = self.assistant_provider
         if provider is None:
-            # Non-production defaults to the explicit rules demo; production has no assistant
-            # unless an operator configures openai (turns then answer 503).
-            if self.app_env is not AppEnv.PRODUCTION:
-                self.assistant_provider = AssistantProvider.RULES
+            if self.openai_api_key is not None and self.openai_model is not None:
+                self.assistant_provider = AssistantProvider.OPENAI
             return self
-        if provider is AssistantProvider.RULES and self.app_env is AppEnv.PRODUCTION:
-            raise ValueError("ASSISTANT_PROVIDER=rules is not allowed when APP_ENV=production")
         if provider is AssistantProvider.OPENAI:
             if self.openai_api_key is None:
                 raise ValueError("ASSISTANT_PROVIDER=openai requires OPENAI_API_KEY")

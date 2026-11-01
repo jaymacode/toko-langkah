@@ -1,7 +1,7 @@
 import { getConfig } from "@/lib/config";
 
 /**
- * Typed client for the TokoLangkah API (docs/contracts/M1.md and M3M4.md section A).
+ * Typed client for the TokoLangkah API.
  * Responses are runtime-validated; anything that does not match the contract
  * becomes an ApiError instead of reaching the UI as unchecked data.
  */

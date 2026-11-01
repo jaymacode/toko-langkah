@@ -1,5 +1,5 @@
 -- 0010_latest_envelope.sql: the newest assistant envelope of one conversation, for restore on reload.
--- Earlier migrations 0001-0009 are unchanged. Contract: docs/contracts/M4.md (restore), 0006/0007.
+-- Earlier migrations 0001-0009 are unchanged.
 --
 -- The API reads this only through tokolangkah_private.latest_assistant_envelope, which runs as the
 -- table owner (SECURITY DEFINER). messages.payload stays column-revoked from the API roles. The

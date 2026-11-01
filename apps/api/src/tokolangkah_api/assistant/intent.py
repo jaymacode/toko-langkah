@@ -1,4 +1,4 @@
-"""Deterministic Indonesian heuristics shared by the planners and the orchestrator's pre-routing.
+"""Deterministic Indonesian heuristics shared by the planner and the orchestrator's pre-routing.
 
 These decide routing only. Authorization is enforced by the ToolRunner and by RLS, never by these.
 """

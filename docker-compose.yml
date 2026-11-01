@@ -1,26 +1,46 @@
-# Local development database only.
-# The POSTGRES_PASSWORD default "postgres" is a LOCAL DEV DEFAULT. Never reuse it for shared or production
-# environments; set POSTGRES_PASSWORD in your local .env (ignored by Git) to override it.
+# Runs TokoLangkah against the Supabase project and model endpoint configured in .env.
+#
+#   docker compose --profile setup run --rm setup   # once: migrations, synthetic data, demo accounts
+#   docker compose up -d --build                    # API on :8000, web on :3000
 services:
-  db:
-    # Pinned: pgvector 0.8.0 on PostgreSQL 17. Verified with `docker pull` on 2026-10-27.
-    image: pgvector/pgvector:0.8.0-pg17
+  setup:
+    profiles: ["setup"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file: .env
     environment:
-      # The superuser name is fixed to "postgres"; scripts/tasks.py connects as this user.
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-tokolangkah}
-    ports:
-      - "${POSTGRES_PORT:-54322}:5432"
+      APP_ENV: development
+    # Root only for this one-shot job, so it can write artifacts/ on any host.
+    user: "0:0"
     volumes:
-      - tokolangkah_pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-      start_period: 5s
+      - ./data:/app/data:ro
+      - ./artifacts:/app/artifacts
+    command:
+      - sh
+      - -c
+      - python -m tokolangkah_api.admin.migrate && python -m tokolangkah_api.admin.seed --target supabase
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file: .env
+    ports:
+      - "8000:8000"
     restart: unless-stopped
 
-volumes:
-  tokolangkah_pgdata:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+        NEXT_PUBLIC_APP_MODE: ${NEXT_PUBLIC_APP_MODE:-development}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped

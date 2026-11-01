@@ -10,7 +10,7 @@ Rules, per claim (one answer sentence with the evidence ids it cites):
    SUPPORT_THRESHOLD (0.5). Unsupported claims are dropped.
 
 If no claim survives, the answer is abstained. Token overlap is a weak check by design; it is
-documented as such, and it never replaces the human-graded policy rubric (docs/EVALS.md).
+documented as such, and it never replaces the human-graded policy rubric.
 """
 
 from __future__ import annotations

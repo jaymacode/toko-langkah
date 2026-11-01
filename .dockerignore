@@ -12,3 +12,13 @@ artifacts
 apps/web/test-results
 apps/web/playwright-report
 .playwright-mcp
+**/.impeccable
+apps/api/tests
+apps/web/e2e
+apps/web/e2e-live
+apps/web/src/__tests__
+apps/web/src/fixtures
+apps/web/tsconfig.tsbuildinfo
+docs
+scripts
+assets

@@ -3,7 +3,7 @@
 -- Assumes the Supabase roles (anon, authenticated) and auth.uid() exist: locally they come from
 -- db/local/00_supabase_shim.sql, on Supabase from the platform. This file creates no roles and no auth objects.
 -- The ADD COLUMN ... NOT NULL statements assume the tables are empty (true for a fresh dev database).
--- Contract: docs/contracts/M1.md. Policies use (select auth.uid()) so it is evaluated once per statement.
+-- Policies use (select auth.uid()) so it is evaluated once per statement.
 
 -- 1. Stable fixture keys
 ALTER TABLE stores ADD COLUMN external_id text NOT NULL UNIQUE;

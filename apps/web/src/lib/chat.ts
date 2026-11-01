@@ -2,13 +2,12 @@ import { ApiError } from "@/lib/api";
 import type { ProductFilters } from "@/lib/chat-api";
 import { formatIdr } from "@/lib/format";
 
-/** Matches the turn API limit: content 1..2000 characters (docs/contracts/M4.md). */
+/** Matches the turn API limit: content 1..2000 characters. */
 export const MAX_MESSAGE_LENGTH = 2000;
 
 /** Sent by the "Hubungi staf" control through the same turn API as any other message. */
 export const ESCALATION_REQUEST_TEXT = "Saya ingin bicara dengan staf.";
 
-export const RULES_PROVIDER_LABEL = "Asisten berbasis aturan";
 export const SIGN_IN_PROMPT = "Masuk untuk bertanya kepada asisten. Katalog produk tetap bisa dilihat tanpa masuk.";
 export const FILTER_UPDATED_HINT = "Filter diperbarui, kirim pesan untuk mencari ulang.";
 export const SESSION_EXPIRED_CHAT_MESSAGE = "Sesi Anda sudah berakhir. Masuk kembali untuk melanjutkan.";

@@ -218,7 +218,7 @@ def post_message(
             filters=result.filters,
             order=result.order,
             ticket=result.ticket,
-            provider=result.provider,  # type: ignore[arg-type]
+            provider=result.provider,
             orders=list(result.orders),
         )
         stored = turns.store_envelope(

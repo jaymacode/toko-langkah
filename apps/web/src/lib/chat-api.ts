@@ -12,7 +12,7 @@ import {
 import type { AuthedCallOptions, ClientOptions, Order, Ticket } from "@/lib/api";
 
 /**
- * Typed client for the assistant turn API (docs/contracts/M4.md, "Turn API").
+ * Typed client for the assistant turn API.
  * Every response is runtime-validated before the UI sees it. Unknown extra fields
  * are tolerated; required fields and their types are enforced. All text in these
  * shapes is data: the UI renders it as text only, never as HTML.
@@ -20,9 +20,6 @@ import type { AuthedCallOptions, ClientOptions, Order, Ticket } from "@/lib/api"
 
 export const NEXT_ACTIONS = ["answer", "clarify", "abstain", "offer_escalation", "escalated"] as const;
 export type NextAction = (typeof NEXT_ACTIONS)[number];
-
-export const ASSISTANT_PROVIDERS = ["rules", "openai"] as const;
-export type AssistantProvider = (typeof ASSISTANT_PROVIDERS)[number];
 
 /** Product filters. Every key is present in a response; null means "not set". */
 export type ProductFilters = {
@@ -68,7 +65,7 @@ export type TurnEnvelope = {
   filters: ProductFilters | null;
   order: Order | null;
   ticket: Ticket | null;
-  provider: AssistantProvider;
+  provider: string;
   /** The customer's own orders for a list question; absent on envelopes stored before it existed. */
   orders?: Order[];
 };
@@ -139,10 +136,6 @@ export function isNextAction(value: unknown): value is NextAction {
   return typeof value === "string" && (NEXT_ACTIONS as readonly string[]).includes(value);
 }
 
-export function isAssistantProvider(value: unknown): value is AssistantProvider {
-  return typeof value === "string" && (ASSISTANT_PROVIDERS as readonly string[]).includes(value);
-}
-
 export function isTurnEnvelope(value: unknown): value is TurnEnvelope {
   return (
     isRecord(value) &&
@@ -158,7 +151,7 @@ export function isTurnEnvelope(value: unknown): value is TurnEnvelope {
     (value.filters === null || isProductFilters(value.filters)) &&
     (value.order === null || isOrder(value.order)) &&
     (value.ticket === null || isTicket(value.ticket)) &&
-    isAssistantProvider(value.provider) &&
+    typeof value.provider === "string" &&
     (value.orders === undefined || (Array.isArray(value.orders) && value.orders.every(isOrder)))
   );
 }
@@ -293,9 +286,3 @@ function isConversationMessage(value: unknown): value is ConversationMessage {
   );
 }
 
-/** Reads the assistant provider label from GET /health (no credentials). */
-export async function getHealthProvider(options: ClientOptions = {}): Promise<string> {
-  const body = await requestJson("/health", options, { method: "GET" });
-  if (!isRecord(body) || typeof body.assistant_provider !== "string") throw invalidResponse();
-  return body.assistant_provider;
-}

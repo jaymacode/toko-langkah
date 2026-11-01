@@ -118,7 +118,7 @@ class TurnEnvelope(BaseModel):
     filters: ProductFilters | None
     order: Order | None
     ticket: Ticket | None
-    provider: Literal["rules", "openai"]
+    provider: str
     # The customer's own orders for a list question; absent on envelopes stored before it existed.
     orders: list[Order] = Field(default_factory=list)
 

@@ -10,13 +10,12 @@ import { SourceDrawer } from "@/components/source-drawer";
 import type { DrawerSource } from "@/components/source-drawer";
 import { ApiError, toApiError } from "@/lib/api";
 import type { Ticket } from "@/lib/api";
-import { createConversation, getConversation, getHealthProvider, sendTurn } from "@/lib/chat-api";
+import { createConversation, getConversation, sendTurn } from "@/lib/chat-api";
 import type { ConversationMessage, Evidence, ProductFilters, ProductHit, TurnEnvelope } from "@/lib/chat-api";
 import {
   ESCALATION_REQUEST_TEXT,
   FILTER_UPDATED_HINT,
   MAX_MESSAGE_LENGTH,
-  RULES_PROVIDER_LABEL,
   SIGN_IN_PROMPT,
   clearStoredConversationId,
   filterChips,
@@ -104,7 +103,6 @@ export function ChatShell({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [drawerSource, setDrawerSource] = useState<DrawerSource | null>(null);
-  const [provider, setProvider] = useState<string | null>(null);
   /** The user whose stored conversation has been read back (or found missing) in this page load. */
   const [restoreDoneFor, setRestoreDoneFor] = useState<string | null>(null);
   const [restoreError, setRestoreError] = useState<string | null>(null);
@@ -120,21 +118,6 @@ export function ChatShell({
   const restoring =
     sessionStatus === "signed_in" && userId !== null && readStoredConversationId(userId) !== null && restoreDoneFor !== userId;
   const chips = filterChips(filters);
-
-  // The provider label is read once from /health. If it fails, no label is shown.
-  useEffect(() => {
-    let active = true;
-    getHealthProvider()
-      .then((value) => {
-        if (active) setProvider(value);
-      })
-      .catch(() => {
-        // Label stays hidden; the chat still works.
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView?.({ block: "nearest" });
@@ -348,12 +331,6 @@ export function ChatShell({
         <h1 id={headingId} className="font-display text-[clamp(40px,5vw,64px)] font-bold uppercase leading-[0.86] text-text lg:text-[44px]">
           <span className="block lg:inline">Asisten</span> <span className="block text-quiet lg:inline">TokoLangkah</span>
         </h1>
-        {provider === "rules" ? (
-          <p className="mt-4 inline-flex items-center gap-2 rounded-pill border border-rule bg-surface px-3 py-1.5 text-[13px] text-text">
-            <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-            {RULES_PROVIDER_LABEL}
-          </p>
-        ) : null}
         <p className="mt-3 max-w-[46ch] text-[16px] leading-relaxed text-muted">
           Tanyakan produk, ukuran, pesanan Anda, atau kebijakan toko. Jawaban menyertakan sumber bila tersedia.
         </p>

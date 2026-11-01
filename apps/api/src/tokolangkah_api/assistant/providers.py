@@ -1,4 +1,4 @@
-"""Build the configured planner. The rules planner needs nothing; openai needs the key and model."""
+"""Build the configured model planner and embedder. Both need OPENAI_API_KEY and a model."""
 
 from __future__ import annotations
 
@@ -11,21 +11,18 @@ from tokolangkah_api.assistant.embeddings import Embedder, EmbeddingClientLike, 
 from tokolangkah_api.assistant.errors import AssistantUnavailable
 from tokolangkah_api.assistant.openai_planner import CALL_TIMEOUT_SECONDS, ChatLike, OpenAIPlanner
 from tokolangkah_api.assistant.planner import Planner
-from tokolangkah_api.assistant.rules_planner import RulesPlanner
 from tokolangkah_api.assistant.spend import DbSpendLedger, Source, SpendPolicy, UnavailableLedger
-from tokolangkah_api.settings import AssistantProvider, RetrievalMode, Settings
+from tokolangkah_api.settings import RetrievalMode, Settings
 
 
 def build_planner(settings: Settings, *, source: Source = "chat") -> Planner:
-    """Return the planner for the explicit provider. Raises AssistantUnavailable if none is set.
+    """Return the model planner. Raises AssistantUnavailable if no provider is configured.
 
     `source` labels the spend ledger rows: "chat" for customer turns, "eval" for live evals.
     """
     provider = settings.assistant_provider
     if provider is None:
         raise AssistantUnavailable("no_provider")
-    if provider is AssistantProvider.RULES:
-        return RulesPlanner()
     api_key = settings.openai_api_key
     model = settings.openai_model
     if api_key is None or model is None:

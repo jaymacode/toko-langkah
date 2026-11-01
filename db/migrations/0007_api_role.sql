@@ -3,10 +3,10 @@
 -- Earlier migrations 0001-0006 are unchanged.
 --
 -- Works on local Docker (db/local shim) and Supabase: only public, tokolangkah_private and roles
--- anon/authenticated are referenced. Contract: docs/THREAT_MODEL.md item 1, docs/DEPLOYMENT.md "Database role".
+-- anon/authenticated are referenced.
 --
 -- The role is created NOLOGIN without a password. The operator sets LOGIN and the password outside
--- migrations (local: scripts/tasks.py db-migrate; Supabase: a secret-manager step). No secret lives here.
+-- this file (admin.migrate sets them from API_DATABASE_URL). No secret lives here.
 -- NOINHERIT: the role has no table privileges of its own. It reaches anon/authenticated only through
 -- SET LOCAL ROLE, which keeps RLS in force for every user-scoped query.
 

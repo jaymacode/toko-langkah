@@ -1,4 +1,4 @@
-"""Planner contract shared by the rules planner and the OpenAI planner.
+"""Planner contract for the model planner (OpenAI-compatible endpoint).
 
 A planner decides the intent of one message and runs retrieval through the ToolRunner. It returns
 claims for policy answers only; each claim is validated by citations.validate_claims before it

@@ -17,4 +17,4 @@ ALTER TABLE policy_chunks ADD COLUMN embedding_text_sha256 text
 
 -- 3. No vector index yet. The catalogue and policy corpus are small, so retrieval uses exact
 --    search (embedding <=> query) after the SQL predicates. Add an HNSW index only after recall and
---    filter behaviour are validated at a larger size (docs/ARCHITECTURE.md "Search").
+--    filter behaviour are validated at a larger size.

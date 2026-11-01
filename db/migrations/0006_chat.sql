@@ -1,5 +1,5 @@
 -- 0006_chat.sql: round 4 assistant turns (idempotent messages, envelope payload, shared rate limit).
--- Contract: docs/contracts/M4.md. Earlier migrations 0001-0005 are unchanged.
+-- Earlier migrations 0001-0005 are unchanged.
 --
 -- Customers insert only role='user' rows (0002 policy). Assistant rows are written by the API through
 -- the table-owner connection after it has verified conversation ownership in the same statement, so

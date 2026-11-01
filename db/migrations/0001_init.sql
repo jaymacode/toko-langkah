@@ -7,7 +7,7 @@
 --   * Foreign keys reference the owning store/customer so ownership can be enforced by composite keys.
 --
 -- NOT IN THIS FILE: Row Level Security policies and the auth-user mapping. Those are M1 work
--- (docs/ARCHITECTURE.md "Auth", docs/SECURITY.md controls 1-2). RLS is enabled with no policies at the
+-- (migrations 0002 onward). RLS is enabled with no policies at the
 -- end of this file, so non-owner roles (including Supabase anon/authenticated) see no rows until then.
 -- store_members.user_id is intentionally not a foreign key here because Supabase auth.users does not
 -- exist in the local development database.

@@ -21,8 +21,8 @@
     "store_id": "store-demo",
     "customer_alias": "customer-a",
     "status": "shipped",
-    "tracking_code": "DUMMY-TRACK-002",
-    "eta_text": "Estimasi dummy; bukan pelacakan kurir langsung.",
+    "tracking_code": "JNT8002610002",
+    "eta_text": "Estimasi tiba 2-3 hari kerja",
     "updated_at": "2026-10-27T10:00:00Z",
     "items": [
       {
@@ -38,7 +38,7 @@
     "store_id": "store-demo",
     "customer_alias": "customer-a",
     "status": "delivered",
-    "tracking_code": "DUMMY-TRACK-003",
+    "tracking_code": "JNT8002610003",
     "eta_text": null,
     "updated_at": "2026-10-27T10:00:00Z",
     "items": [
@@ -72,8 +72,8 @@
     "store_id": "store-demo",
     "customer_alias": "customer-b",
     "status": "shipped",
-    "tracking_code": "DUMMY-TRACK-005",
-    "eta_text": "Estimasi dummy; bukan pelacakan kurir langsung.",
+    "tracking_code": "JNT8002610005",
+    "eta_text": "Estimasi tiba 2-3 hari kerja",
     "updated_at": "2026-10-27T10:00:00Z",
     "items": [
       {
@@ -89,7 +89,7 @@
     "store_id": "store-demo",
     "customer_alias": "customer-b",
     "status": "delivered",
-    "tracking_code": "DUMMY-TRACK-006",
+    "tracking_code": "JNT8002610006",
     "eta_text": null,
     "updated_at": "2026-10-27T10:00:00Z",
     "items": [

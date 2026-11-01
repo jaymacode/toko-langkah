@@ -36,3 +36,22 @@ docs/
 .github/
 AGENTS.md
 START_HERE.md
+
+# Tests, mocks, evals and local tooling (kept local only)
+apps/api/tests/
+apps/api/src/tokolangkah_api/evals/
+apps/web/e2e/
+apps/web/e2e-live/
+apps/web/src/__tests__/
+apps/web/src/fixtures/
+apps/web/playwright*.config.ts
+apps/web/vitest.config.mts
+apps/web/test-results/
+data/evals/
+data/eval_cases.json
+db/local/
+scripts/
+Makefile
+verification-kit.json
+.impeccable/
+**/.impeccable/
