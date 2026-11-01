@@ -4,8 +4,8 @@ import { ProductDetailView } from "@/components/product-detail-view";
 import { getConfig } from "@/lib/config";
 
 export const metadata: Metadata = {
-  title: "Produk — TokoLangkah Demo",
-  description: "Detail sepatu fiktif TokoLangkah.",
+  title: "Produk — TokoLangkah",
+  description: "Detail sepatu TokoLangkah.",
 };
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {

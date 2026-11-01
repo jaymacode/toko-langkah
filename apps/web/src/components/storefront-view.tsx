@@ -11,7 +11,6 @@ import { NEEDS, matchesNeed } from "@/lib/needs";
 import type { Need } from "@/lib/needs";
 import { catalogueErrorMessage, useCatalogue } from "@/lib/use-store";
 
-export { DEMO_LABEL } from "@/components/site-frame";
 
 /** Example questions, each opening the assistant with the text in the composer (not sent). */
 const ASK_EXAMPLES = [
@@ -58,7 +57,7 @@ function Hero() {
       <div className="relative aspect-square overflow-hidden rounded-bay bg-stone md:aspect-auto md:min-h-[22rem]">
         <Image
           src={HERO_IMAGE}
-          alt="Sepatu fiktif Awan Walk warna navy"
+          alt="Sepatu Awan Walk warna navy"
           fill
           priority
           sizes="(min-width: 768px) 50vw, 100vw"

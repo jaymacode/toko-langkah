@@ -26,3 +26,13 @@ coverage.xml
 
 # impeccable decision-page runtime state (keys, logs)
 .impeccable/questions/
+
+# Impeccable design tooling (local only)
+.impeccable/
+PRODUCT.md
+
+# Internal docs and CI kept local only
+docs/
+.github/
+AGENTS.md
+START_HERE.md

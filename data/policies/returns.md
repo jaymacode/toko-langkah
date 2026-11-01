@@ -1,6 +1,6 @@
 # Retur dan penukaran
 
-Kebijakan fiktif untuk demo — versi 1.
+Kebijakan toko TokoLangkah — versi 1.
 
 ## Syarat retur
 

@@ -3,19 +3,16 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useAuth } from "@/components/auth-provider";
-import { DEMO_LABEL } from "@/components/site-frame";
 import type { AppMode } from "@/lib/config";
 
 /**
  * Chrome for the staff console. Deliberately not the storefront frame: no shop navigation, cart,
- * floating assistant or shop footer. An ink bar marks that this is a working tool for staff; the
- * demo label stays visible as on every page.
+ * floating assistant or shop footer. The ink bar marks that this is a working tool for staff.
  */
 const STAFF_LINK =
   "inline-flex min-h-11 items-center rounded-pill px-3 text-[15px] text-ink-muted transition-colors duration-200 hover:text-on-primary aria-[current=page]:bg-on-primary aria-[current=page]:text-text";
 
 export function StaffFrame({
-  mode,
   current,
   children,
 }: {
@@ -78,15 +75,6 @@ export function StaffFrame({
                 </button>
               </div>
             ) : null}
-          </div>
-        </div>
-        <div className="border-b border-border bg-background">
-          <div className="mx-auto flex max-w-[90rem] flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1.5 md:px-6">
-            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />
-            <p className="text-[13px] text-muted">{DEMO_LABEL}</p>
-            <span data-testid="mode-badge" className="tabular rounded-pill border border-rule px-2 py-px text-[12px] text-muted">
-              Mode: {mode}
-            </span>
           </div>
         </div>
       </header>

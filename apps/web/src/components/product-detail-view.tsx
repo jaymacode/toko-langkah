@@ -166,7 +166,7 @@ function BuyBox({ product }: { product: Product }) {
             </p>
           ) : null}
         </div>
-        <p className="text-sm text-muted">Demo: keranjang hanya tersimpan di browser ini dan pembayaran tidak tersedia.</p>
+        <p className="text-sm text-muted">Keranjang hanya tersimpan di browser ini dan pembayaran belum tersedia.</p>
       </div>
     </div>
   );

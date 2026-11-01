@@ -4,7 +4,7 @@ import { getConfig } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: "Stok — Konsol staf TokoLangkah",
-  description: "Kelola stok per ukuran untuk staf toko demo.",
+  description: "Kelola stok per ukuran untuk staf toko TokoLangkah.",
 };
 
 export default function StockPage() {

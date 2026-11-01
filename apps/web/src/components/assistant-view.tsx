@@ -5,11 +5,9 @@ import { useState } from "react";
 import { ChatShell } from "@/components/chat-shell";
 import { ProductHitList } from "@/components/product-hit-list";
 import { ProductList } from "@/components/product-list";
-import { SiteFrame, DEMO_LABEL } from "@/components/site-frame";
+import { SiteFrame } from "@/components/site-frame";
 import type { ProductHit } from "@/lib/chat-api";
 import type { AppMode } from "@/lib/config";
-
-export { DEMO_LABEL };
 
 /**
  * Customer assistant page (/asisten): chat on the left, contextual panel on the right. The

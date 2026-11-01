@@ -25,7 +25,7 @@ export function OrdersView({ mode }: { mode: AppMode }) {
           <h1 id="orders-heading" className="font-display text-[clamp(40px,6vw,72px)] font-bold uppercase leading-[0.86] text-text">
             Pesanan Saya
           </h1>
-          <p className="mt-2 text-muted">Pesanan pada akun yang sedang masuk. Data demo, fiktif.</p>
+          <p className="mt-2 text-muted">Pesanan pada akun yang sedang masuk.</p>
         </div>
         <OrdersList />
       </section>

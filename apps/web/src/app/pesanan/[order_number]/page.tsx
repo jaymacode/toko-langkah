@@ -3,7 +3,7 @@ import { OrderDetailView } from "@/components/order-detail-view";
 import { getConfig } from "@/lib/config";
 
 export const metadata: Metadata = {
-  title: "Detail pesanan — TokoLangkah Demo",
+  title: "Detail pesanan — TokoLangkah",
   description: "Detail pesanan pada akun yang sedang masuk.",
 };
 

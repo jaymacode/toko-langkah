@@ -152,7 +152,7 @@ export function CatalogueView({ mode }: { mode: AppMode }) {
             Produk
           </h1>
           <p className="max-w-[30ch] text-[17px] leading-snug text-muted md:pb-2 md:text-right">
-            Sepatu fiktif untuk demo. Harga dalam rupiah, ukuran EU yang tersedia.
+            Harga dalam rupiah, ukuran EU yang tersedia.
           </p>
         </div>
 

@@ -117,8 +117,7 @@ export function SignUpView({ mode }: { mode: AppMode }) {
               Daftar
             </h1>
             <p className="mt-2 text-muted">
-              Buat akun untuk bertanya ke asisten dan melihat pesanan Anda. Ini toko demo: jangan pakai kata sandi yang Anda
-              gunakan di tempat lain.
+              Buat akun untuk bertanya ke asisten dan melihat pesanan Anda. Gunakan kata sandi yang unik.
             </p>
           </div>
 

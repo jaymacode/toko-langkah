@@ -8,8 +8,6 @@ import { itemCount } from "@/lib/cart";
 import type { AppMode } from "@/lib/config";
 import { useCart } from "@/lib/use-store";
 
-export const DEMO_LABEL = "Demo — produk, pesanan, dan kebijakan fiktif";
-
 export type NavKey = "beranda" | "produk" | "asisten" | "bantuan" | "pesanan" | "keranjang" | "staf";
 
 const NAV_LINK_CLASS =
@@ -48,13 +46,11 @@ function CartLink({ current }: { current: boolean }) {
 }
 
 /**
- * Shared header, demo label, footer and main landmark for every page. The demo label is
- * always visible so fictional data is never mistaken for a live store. The Staf link appears
+ * Shared header, footer and main landmark for every page. The Staf link appears
  * only when /me reports a staff store. Store pages also get the floating assistant button,
  * which can carry a question about the shoe on screen.
  */
 export function SiteFrame({
-  mode,
   current,
   assistantQuestion = null,
   showAssistantButton,
@@ -153,15 +149,6 @@ export function SiteFrame({
             <CartLink current={current === "keranjang"} />
           </div>
         </div>
-        <div className="border-t border-border">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1.5 md:px-8">
-            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />
-            <p className="text-[13px] text-muted">{DEMO_LABEL}</p>
-            <span data-testid="mode-badge" className="tabular rounded-pill border border-rule px-2 py-px text-[12px] text-muted">
-              Mode: {mode}
-            </span>
-          </div>
-        </div>
       </header>
       {/* tabIndex -1 lets the skip link move keyboard focus here; the outline is removed only on this container. */}
       <main
@@ -179,8 +166,7 @@ export function SiteFrame({
               tokolangkah<span aria-hidden="true" className="text-accent">.</span>
             </p>
             <p className="mt-2 max-w-[52ch] text-sm text-muted">
-              Toko sepatu fiktif untuk demo asisten belanja. Produk, harga, dan kebijakan bukan penawaran nyata, dan tidak ada
-              pembayaran.
+              Toko sepatu TokoLangkah. Tanya produk, ukuran, pesanan, atau kebijakan toko kepada asisten kami.
             </p>
           </div>
           <nav aria-label="Tautan bawah">

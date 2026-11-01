@@ -3,8 +3,8 @@ import { AssistantView } from "@/components/assistant-view";
 import { getConfig } from "@/lib/config";
 
 export const metadata: Metadata = {
-  title: "Asisten — TokoLangkah Demo",
-  description: "Tanya produk, ukuran, pesanan, atau kebijakan toko sepatu fiktif TokoLangkah.",
+  title: "Asisten — TokoLangkah",
+  description: "Tanya produk, ukuran, pesanan, atau kebijakan toko TokoLangkah.",
 };
 
 export default async function AssistantPage({

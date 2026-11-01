@@ -17,8 +17,8 @@ const instrument = Instrument_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "TokoLangkah — Demo",
-  description: "Demo asisten toko sepatu fiktif TokoLangkah.",
+  title: "TokoLangkah",
+  description: "Asisten belanja toko sepatu TokoLangkah.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

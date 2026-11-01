@@ -13,7 +13,7 @@ import { formatIdr } from "@/lib/format";
 import { catalogueErrorMessage, useCart, useCatalogue } from "@/lib/use-store";
 
 export const CHECKOUT_UNAVAILABLE_MESSAGE =
-  "Pembayaran tidak tersedia di demo ini. Tidak ada pesanan yang dibuat dan isi keranjang tidak dikirim ke mana pun.";
+  "Pembayaran online belum tersedia. Tidak ada pesanan yang dibuat dan isi keranjang tidak dikirim ke mana pun.";
 
 type ResolvedLine = { line: CartLine; product: Product | null; available: boolean };
 
@@ -169,7 +169,7 @@ export function CartView({ mode }: { mode: AppMode }) {
                 <dt className="text-muted">Barang</dt>
                 <dd className="tabular text-right text-text">{payable}</dd>
                 <dt className="text-muted">Ongkos kirim</dt>
-                <dd className="text-right text-muted">Tidak dihitung di demo</dd>
+                <dd className="text-right text-muted">Belum dihitung</dd>
                 <dt className="border-t border-border pt-3 font-medium text-text">Subtotal</dt>
                 <dd className="tabular border-t border-border pt-3 text-right text-[22px] font-semibold text-text">
                   {formatIdr(total)}

@@ -3,8 +3,8 @@ import { SignInView } from "@/components/sign-in-view";
 import { getConfig } from "@/lib/config";
 
 export const metadata: Metadata = {
-  title: "Masuk — TokoLangkah Demo",
-  description: "Masuk ke akun demo fiktif TokoLangkah.",
+  title: "Masuk — TokoLangkah",
+  description: "Masuk ke akun TokoLangkah Anda.",
 };
 
 export default function SignInPage() {

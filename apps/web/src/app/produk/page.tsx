@@ -4,8 +4,8 @@ import { CatalogueView } from "@/components/catalogue-view";
 import { getConfig } from "@/lib/config";
 
 export const metadata: Metadata = {
-  title: "Produk — TokoLangkah Demo",
-  description: "Katalog sepatu fiktif TokoLangkah untuk demo.",
+  title: "Produk — TokoLangkah",
+  description: "Katalog sepatu TokoLangkah: harga dalam rupiah, ukuran EU yang tersedia.",
 };
 
 export default function ProductsPage() {

@@ -59,7 +59,7 @@
       {
         "id": "policy-payments-v1-001",
         "section": "Konfirmasi pembayaran",
-        "text": "Demo tidak menerima pembayaran sungguhan. Status pembayaran pada data dummy hanya untuk simulasi. Jangan meminta nomor kartu, PIN, OTP, atau transfer uang."
+        "text": "Toko ini tidak menerima pembayaran sungguhan. Status pembayaran pada data dummy hanya untuk simulasi. Jangan meminta nomor kartu, PIN, OTP, atau transfer uang."
       }
     ]
   },

@@ -3,8 +3,8 @@ import { StaffView } from "@/components/staff-view";
 import { getConfig } from "@/lib/config";
 
 export const metadata: Metadata = {
-  title: "Staf — TokoLangkah Demo",
-  description: "Tiket eskalasi untuk staf toko fiktif TokoLangkah.",
+  title: "Staf — TokoLangkah",
+  description: "Tiket eskalasi untuk staf toko TokoLangkah.",
 };
 
 export default function StaffPage() {

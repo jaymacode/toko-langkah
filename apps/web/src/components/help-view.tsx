@@ -73,7 +73,7 @@ export function HelpView({ mode }: { mode: AppMode }) {
             Bantuan <span className="text-quiet">&amp; FAQ</span>
           </h1>
           <p className="max-w-[38ch] text-[17px] leading-snug text-muted md:pb-2 md:text-right">
-            Ketentuan toko yang sama persis dengan yang dikutip asisten. Fiktif, untuk demo.
+            Ketentuan toko yang sama persis dengan yang dikutip asisten.
           </p>
         </div>
 

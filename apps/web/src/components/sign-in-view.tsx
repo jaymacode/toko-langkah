@@ -97,7 +97,7 @@ export function SignInView({ mode }: { mode: AppMode }) {
             Masuk
           </h1>
           <p className="mt-2 text-muted">
-            Masuk dengan akun demo untuk melihat pesanan Anda. Akun ini fiktif.
+            Masuk untuk melihat pesanan Anda dan bertanya kepada asisten.
           </p>
         </div>
 
