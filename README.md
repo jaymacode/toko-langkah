@@ -131,16 +131,3 @@ db/migrations/ SQL migrations 0001–0013, including RLS policies
 data/          Synthetic store data and policies
 assets/        README screenshots
 ```
-
-## Status
-
-Runs locally with Docker Compose against a Supabase project and an OpenRouter model. Not deployed.
-
-## Built with AI assistance
-
-Implemented with the help of AI coding agents, from written product and architecture specs.
-
-## Author
-
-Jaya Saputra, Full-stack Developer
-LinkedIn: https://linkedin.com/in/jayasssaputra
